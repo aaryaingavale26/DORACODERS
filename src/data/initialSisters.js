@@ -1,3 +1,9 @@
+export const DEFAULT_USER_LOCATION = {
+  lat: 26.9124,
+  lng: 75.7873,
+  address: "Sector 14 / Central Hub"
+};
+
 export const initialSisters = [
   {
     id: "sister-1",
@@ -12,6 +18,8 @@ export const initialSisters = [
     isVerified: true,
     avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80",
     distance: "1.2 km away",
+    distanceKm: 1.2,
+    coordinates: { lat: 26.9180, lng: 75.7940 },
     location: "Sector 14, Urban Enclave",
     experience: "8+ years experience in designer blouses, kurti alteration & custom bridal fits.",
     phone: "+91 98765 43210",
@@ -39,6 +47,8 @@ export const initialSisters = [
     isVerified: true,
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
     distance: "2.1 km away",
+    distanceKm: 2.1,
+    coordinates: { lat: 26.9020, lng: 75.7760 },
     location: "Green Glen Colony",
     experience: "6 years specializing in Arabic, Rajasthani bridal, and minimalist organic henna designs.",
     phone: "+91 98765 43211",
@@ -66,6 +76,8 @@ export const initialSisters = [
     isVerified: true,
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80",
     distance: "0.8 km away",
+    distanceKm: 0.8,
+    coordinates: { lat: 26.9160, lng: 75.7820 },
     location: "Civil Lines Block B",
     experience: "10+ years expert in nutritious North & South Indian home meals, diabetic diets, and party snacks.",
     phone: "+91 98765 43212",
@@ -93,6 +105,8 @@ export const initialSisters = [
     isVerified: true,
     avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80",
     distance: "1.7 km away",
+    distanceKm: 1.7,
+    coordinates: { lat: 26.9230, lng: 75.7810 },
     location: "Sunrise Residency",
     experience: "7 years certified beautician offering herbal facials, waxing, manicure, pedicure, and head oil massage.",
     phone: "+91 98765 43213",
@@ -120,6 +134,8 @@ export const initialSisters = [
     isVerified: true,
     avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80",
     distance: "2.8 km away",
+    distanceKm: 2.8,
+    coordinates: { lat: 26.8990, lng: 75.8030 },
     location: "Palm Meadows",
     experience: "5 years certified yoga & meditation teacher focusing on women's posture, stress relief, and prenatal yoga.",
     phone: "+91 98765 43214",
@@ -146,6 +162,8 @@ export const initialSisters = [
     isVerified: true,
     avatar: "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=400&auto=format&fit=crop&q=80",
     distance: "1.5 km away",
+    distanceKm: 1.5,
+    coordinates: { lat: 26.9080, lng: 75.7980 },
     location: "Heritage Apartments",
     experience: "9 years master artisan teaching crochet, macrame, resin art, pottery basics, and traditional clay modeling.",
     phone: "+91 98765 43215",

@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initialSisters } from '../data/initialSisters';
+import { initialSisters, DEFAULT_USER_LOCATION } from '../data/initialSisters';
 import confetti from 'canvas-confetti';
 
 const SistersContext = createContext();
 
-const STORAGE_KEY = 'udaan_sisters_v2';
-const LIKES_KEY = 'udaan_user_likes_v2';
+const STORAGE_KEY = 'udaan_sisters_v3';
+const LIKES_KEY = 'udaan_user_likes_v3';
 
 export function SistersProvider({ children }) {
   const [sisters, setSisters] = useState(() => {
@@ -33,8 +33,10 @@ export function SistersProvider({ children }) {
   // Filters & State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [maxDistanceKm, setMaxDistanceKm] = useState(5);
+  const [maxDistanceKm, setMaxDistanceKm] = useState(5); // 3, 5, 10, 50
   const [sortBy, setSortBy] = useState('featured'); // 'featured', 'rating', 'price-asc', 'price-desc', 'likes'
+  const [viewMode, setViewMode] = useState('split'); // 'grid', 'map', 'split'
+  const [activeSisterOnMap, setActiveSisterOnMap] = useState(null);
 
   // Modals state
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
@@ -69,6 +71,12 @@ export function SistersProvider({ children }) {
 
   // Enroll new sister
   const enrollSister = (formData) => {
+    const distNum = Number(formData.distance) || 1.1;
+    // Generate realistic relative coordinates around center
+    const angle = Math.random() * Math.PI * 2;
+    const latOffset = (distNum / 111) * Math.cos(angle);
+    const lngOffset = (distNum / (111 * Math.cos(DEFAULT_USER_LOCATION.lat * (Math.PI / 180)))) * Math.sin(angle);
+
     const newSister = {
       id: `sister-${Date.now()}`,
       name: formData.name,
@@ -77,11 +85,16 @@ export function SistersProvider({ children }) {
       rating: 5.0,
       reviewsCount: 1,
       rate: Number(formData.rate) || 350,
-      rateUnit: "/visit",
+      rateUnit: formData.rateUnit || "/visit",
       likes: 1,
       isVerified: true,
       avatar: formData.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80",
-      distance: `${formData.distance || '0.9'} km away`,
+      distance: `${distNum.toFixed(1)} km away`,
+      distanceKm: distNum,
+      coordinates: {
+        lat: DEFAULT_USER_LOCATION.lat + latOffset,
+        lng: DEFAULT_USER_LOCATION.lng + lngOffset
+      },
       location: formData.location || "Local Community Zone",
       experience: formData.experience || "Skilled professional with dedicated local training.",
       phone: formData.phone || "+91 98000 00000",
@@ -97,7 +110,6 @@ export function SistersProvider({ children }) {
 
     setSisters(prev => [newSister, ...prev]);
 
-    // Celebrate
     try {
       confetti({
         particleCount: 120,
@@ -131,7 +143,7 @@ export function SistersProvider({ children }) {
     );
   };
 
-  // Reset to default seed data if needed
+  // Reset to default seed data
   const resetToSeedData = () => {
     setSisters(initialSisters);
     localStorage.removeItem(STORAGE_KEY);
@@ -145,12 +157,17 @@ export function SistersProvider({ children }) {
       return false;
     }
 
+    // Distance Radius filter
+    if (sister.distanceKm && sister.distanceKm > maxDistanceKm) {
+      return false;
+    }
+
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = sister.name.toLowerCase().includes(q);
       const matchSpecialty = sister.specialty.toLowerCase().includes(q);
-      const matchLocation = sister.location.toLowerCase().includes(q);
+      const matchLocation = sister.location?.toLowerCase().includes(q);
       const matchServices = sister.services?.some(s => s.name.toLowerCase().includes(q));
       if (!matchName && !matchSpecialty && !matchLocation && !matchServices) {
         return false;
@@ -163,7 +180,7 @@ export function SistersProvider({ children }) {
     if (sortBy === 'price-asc') return a.rate - b.rate;
     if (sortBy === 'price-desc') return b.rate - a.rate;
     if (sortBy === 'likes') return b.likes - a.likes;
-    return 0; // featured default order
+    return 0;
   });
 
   return (
@@ -178,6 +195,10 @@ export function SistersProvider({ children }) {
       setMaxDistanceKm,
       sortBy,
       setSortBy,
+      viewMode,
+      setViewMode,
+      activeSisterOnMap,
+      setActiveSisterOnMap,
       userLikes,
       toggleLike,
       enrollSister,

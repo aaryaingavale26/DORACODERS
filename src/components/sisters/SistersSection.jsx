@@ -2,16 +2,19 @@ import React from 'react';
 import { useSisters } from '../../context/SistersContext';
 import SisterCard from './SisterCard';
 import SisterFilters from './SisterFilters';
+import SisterMap from './SisterMap';
 import SisterEnrollModal from './SisterEnrollModal';
 import SisterBookingModal from './SisterBookingModal';
 import SisterProfileModal from './SisterProfileModal';
 import SisterChatModal from './SisterChatModal';
-import { UserPlus, Sparkles, ShieldCheck, RefreshCw } from 'lucide-react';
+import { UserPlus, Sparkles, ShieldCheck, RefreshCw, MapPin } from 'lucide-react';
 
 export default function SistersSection() {
   const { 
     filteredSisters, 
     sisters, 
+    viewMode,
+    maxDistanceKm,
     setIsEnrollModalOpen, 
     searchQuery, 
     setSearchQuery,
@@ -29,7 +32,7 @@ export default function SistersSection() {
             Hire Skilled Sisters Near You
           </h2>
           <p className="text-base sm:text-lg text-gray-600 mt-2 font-normal">
-            Verified women professionals ready to serve in your 3km zone
+            Verified women professionals ready to serve in your {maxDistanceKm}km zone
           </p>
         </div>
 
@@ -52,7 +55,7 @@ export default function SistersSection() {
             onClick={() => setIsEnrollModalOpen(true)}
             className="z-10 bg-white hover:bg-pink-50 text-pink-900 font-bold px-7 py-3.5 rounded-full text-sm sm:text-base shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center gap-2 shrink-0 border-2 border-pink-200"
           >
-            <UserPlus className="w-5 h-5 text-brand-pink" />
+            <UserPlus className="w-5 h-5 text-[#d81b60]" />
             <span>Enroll as a Sister</span>
           </button>
 
@@ -60,45 +63,56 @@ export default function SistersSection() {
           <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-pink-500/10 rounded-full blur-2xl pointer-events-none" />
         </div>
 
-        {/* Filters and Controls */}
+        {/* Filters and View Controls */}
         <SisterFilters />
 
-        {/* Sisters Cards Grid (Exact 3-column layout matching screenshot) */}
-        {filteredSisters.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSisters.map(sister => (
-              <SisterCard key={sister.id} sister={sister} />
-            ))}
+        {/* Interactive Map Display */}
+        {(viewMode === 'map' || viewMode === 'split') && (
+          <div className="mb-10 animate-fade-in">
+            <SisterMap />
           </div>
-        ) : (
-          /* Empty State */
-          <div className="text-center py-16 bg-white rounded-3xl border border-warm-200 p-8 shadow-sm">
-            <div className="w-16 h-16 bg-pink-50 text-brand-pink rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShieldCheck className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold font-serif text-gray-900">No Skilled Sisters Found</h3>
-            <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
-              No matching verified professionals found for "{searchQuery}". Try selecting a different category or broadening your search.
-            </p>
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('all');
-                }}
-                className="px-5 py-2.5 bg-brand-pink text-white rounded-xl text-xs font-semibold hover:bg-brand-darkPink transition-all"
-              >
-                Clear All Filters
-              </button>
-              <button
-                onClick={resetToSeedData}
-                className="px-4 py-2.5 border border-warm-300 text-gray-700 rounded-xl text-xs font-semibold hover:bg-warm-100 flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Reset Sample Sisters
-              </button>
-            </div>
-          </div>
+        )}
+
+        {/* Sisters Cards Grid */}
+        {viewMode !== 'map' && (
+          <>
+            {filteredSisters.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredSisters.map(sister => (
+                  <SisterCard key={sister.id} sister={sister} />
+                ))}
+              </div>
+            ) : (
+              /* Empty State */
+              <div className="text-center py-16 bg-white rounded-3xl border border-warm-200 p-8 shadow-sm">
+                <div className="w-16 h-16 bg-pink-50 text-brand-pink rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShieldCheck className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold font-serif text-gray-900">No Skilled Sisters Found</h3>
+                <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
+                  No matching verified professionals found for "{searchQuery}". Try selecting a different category or broadening your search.
+                </p>
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('all');
+                    }}
+                    className="px-5 py-2.5 bg-brand-pink text-white rounded-xl text-xs font-semibold hover:bg-brand-darkPink transition-all"
+                  >
+                    Clear All Filters
+                  </button>
+                  <button
+                    onClick={resetToSeedData}
+                    className="px-4 py-2.5 border border-warm-300 text-gray-700 rounded-xl text-xs font-semibold hover:bg-warm-100 flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Reset Sample Sisters
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
       </div>
