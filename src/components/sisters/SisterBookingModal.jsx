@@ -10,14 +10,14 @@ import {
   Phone, 
   ShieldCheck, 
   CheckCircle2, 
-  Star,
-  Sparkles,
+  Star, 
+  Navigation,
   MessageCircle
 } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 
 export default function SisterBookingModal() {
-  const { selectedSisterForBooking, setSelectedSisterForBooking } = useSisters();
+  const { selectedSisterForBooking, setSelectedSisterForBooking, userLocation } = useSisters();
   const { createBooking, setIsMyBookingsOpen } = useBookings();
 
   const [selectedService, setSelectedService] = useState(null);
@@ -28,8 +28,9 @@ export default function SisterBookingModal() {
   const [timeSlot, setTimeSlot] = useState("Morning (9 AM - 12 PM)");
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
+  const [customerAddress, setCustomerAddress] = useState(userLocation?.address || '');
   const [specialNotes, setSpecialNotes] = useState('');
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
   if (!selectedSisterForBooking) return null;
@@ -41,7 +42,7 @@ export default function SisterBookingModal() {
   };
 
   const servicePrice = activeService.price || sister.rate;
-  const visitFee = 50; // nominal convenience charge
+  const visitFee = 50;
   const totalAmount = servicePrice + visitFee;
 
   const handleClose = () => {
@@ -49,10 +50,50 @@ export default function SisterBookingModal() {
     setConfirmedBooking(null);
   };
 
+  // Auto-detect current GPS location and fill address
+  const handleUseCurrentLocation = () => {
+    setIsDetectingLocation(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+            .then(res => res.json())
+            .then(data => {
+              setIsDetectingLocation(false);
+              if (data && data.display_name) {
+                setCustomerAddress(data.display_name);
+              } else {
+                setCustomerAddress(`GPS: Lat ${latitude.toFixed(4)}, Lng ${longitude.toFixed(4)} (${userLocation.city || 'Local Area'})`);
+              }
+            })
+            .catch(() => {
+              setIsDetectingLocation(false);
+              setCustomerAddress(`GPS Coordinates (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
+            });
+        },
+        () => {
+          setIsDetectingLocation(false);
+          if (userLocation?.address) {
+            setCustomerAddress(userLocation.address);
+          } else {
+            alert("Could not access GPS. Please type your address manually.");
+          }
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      setIsDetectingLocation(false);
+      if (userLocation?.address) {
+        setCustomerAddress(userLocation.address);
+      }
+    }
+  };
+
   const handleConfirmBooking = (e) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
-      alert("Please provide your name, phone number, and service address.");
+      alert("Please provide your name, contact phone number, and doorstep address.");
       return;
     }
 
@@ -133,6 +174,10 @@ export default function SisterBookingModal() {
                 <span className="font-semibold text-gray-800">{confirmedBooking.date} • {confirmedBooking.timeSlot}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-warm-200">
+                <span className="text-gray-500">Contact Number:</span>
+                <span className="font-semibold text-gray-800">{confirmedBooking.customerPhone}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-warm-200">
                 <span className="text-gray-500">Doorstep Address:</span>
                 <span className="font-semibold text-gray-800 truncate max-w-[250px]">{confirmedBooking.customerAddress}</span>
               </div>
@@ -166,7 +211,7 @@ export default function SisterBookingModal() {
           </div>
         ) : (
           /* Booking Form */
-          <form onSubmit={handleConfirmBooking} className="p-6 sm:p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+          <form onSubmit={handleConfirmBooking} className="p-6 sm:p-8 space-y-6 max-h-[72vh] overflow-y-auto">
             
             {/* Step 1: Select Service */}
             <div>
@@ -236,28 +281,44 @@ export default function SisterBookingModal() {
               </div>
             </div>
 
-            {/* Step 3: Customer Info */}
+            {/* Step 3: Contact Phone & Doorstep Address with GPS Option */}
             <div className="space-y-3">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
-                3. Your Doorstep Details
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                  3. Contact Phone & Doorstep Location
+                </label>
+                
+                {/* Use Current GPS Location Auto-Fill Button */}
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isDetectingLocation}
+                  className="px-2.5 py-1 bg-pink-50 hover:bg-pink-100 text-brand-pink border border-pink-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
+                  title="Auto-fill address with your live device GPS"
+                >
+                  <Navigation className={`w-3 h-3 ${isDetectingLocation ? 'animate-spin' : ''}`} />
+                  <span>{isDetectingLocation ? 'Locating...' : '📍 Use Current Location (GPS)'}</span>
+                </button>
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
+                  <label className="block text-[11px] font-semibold text-gray-600 mb-1">Your Full Name *</label>
                   <input
                     type="text"
                     required
-                    placeholder="Your Full Name *"
+                    placeholder="e.g. Megha Agarwal"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-warm-300 focus:outline-none focus:ring-2 focus:ring-pink-500/30"
                   />
                 </div>
                 <div>
+                  <label className="block text-[11px] font-semibold text-gray-600 mb-1">Contact Phone / WhatsApp *</label>
                   <input
                     type="tel"
                     required
-                    placeholder="Phone / WhatsApp Number *"
+                    placeholder="+91 98765 00000"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-warm-300 focus:outline-none focus:ring-2 focus:ring-pink-500/30"
@@ -266,10 +327,11 @@ export default function SisterBookingModal() {
               </div>
 
               <div>
+                <label className="block text-[11px] font-semibold text-gray-600 mb-1">Doorstep Service Address *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Complete Address, House/Flat No, Landmark *"
+                  placeholder="Complete Address, House/Flat No, Landmark, Area..."
                   value={customerAddress}
                   onChange={(e) => setCustomerAddress(e.target.value)}
                   className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-warm-300 focus:outline-none focus:ring-2 focus:ring-pink-500/30"
