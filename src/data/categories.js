@@ -12,9 +12,11 @@ export const sisterCategories = [
 
 export const productCategories = [
   { id: "all", label: "All Crafts" },
-  { id: "textiles", label: "Textiles & Saree" },
-  { id: "pottery", label: "Pottery & Clay" },
-  { id: "jewelry", label: "Handmade Jewelry" },
-  { id: "home-decor", label: "Home Decor" },
-  { id: "organic", label: "Organic Goods" }
+  { id: "textiles", label: "Textiles & Handloom" },
+  { id: "pottery", label: "Pottery & Terracotta" },
+  { id: "jewelry", label: "Tribal & Ethnic Jewelry" },
+  { id: "home-decor", label: "Home Decor & Brass" },
+  { id: "paintings", label: "Folk Art & Paintings" },
+  { id: "organic", label: "Organic & Wellness" },
+  { id: "accessories", label: "Bags & Footwear" },
 ];
