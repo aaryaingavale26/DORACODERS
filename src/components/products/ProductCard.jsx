@@ -1,13 +1,16 @@
 import React from 'react';
 import { useCart } from '../../context/CartContext';
-import { Star, ShoppingBag, HeartHandshake } from 'lucide-react';
+import { Star, ShoppingBag, HeartHandshake, MapPin } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, onSelect }) {
   const { addToCart } = useCart();
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-warm-200 shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col justify-between group">
+    <div 
+      onClick={() => onSelect && onSelect(product)}
+      className="bg-white rounded-2xl overflow-hidden border border-warm-200 shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col justify-between group cursor-pointer"
+    >
       {/* Image & Artisan Tag */}
       <div className="relative aspect-[4/3] overflow-hidden bg-warm-100">
         <img
@@ -16,10 +19,10 @@ export default function ProductCard({ product }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         
-        {/* Artisan Tag */}
-        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-bold text-gray-800 shadow-sm flex items-center gap-1 border border-warm-200">
-          <HeartHandshake className="w-3.5 h-3.5 text-pink-600" />
-          <span className="truncate max-w-[150px]">{product.artisan}</span>
+        {/* State/Origin Tag */}
+        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-gray-800 shadow-sm flex items-center gap-1 border border-warm-200">
+          <MapPin className="w-3 h-3 text-[#d81b60]" />
+          <span className="truncate max-w-[120px]">{product.state || "India"}</span>
         </div>
 
         {/* Rating */}
@@ -32,7 +35,11 @@ export default function ProductCard({ product }) {
       {/* Product Content */}
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div>
-          <h3 className="font-bold text-sm text-gray-900 line-clamp-1 hover:text-brand-pink transition-colors">
+          <div className="flex items-center gap-1 text-[11px] text-pink-700 font-semibold mb-1">
+            <HeartHandshake className="w-3.5 h-3.5" />
+            <span className="truncate">{product.artisan}</span>
+          </div>
+          <h3 className="font-bold text-sm text-gray-900 line-clamp-1 group-hover:text-brand-pink transition-colors">
             {product.name}
           </h3>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
@@ -54,8 +61,11 @@ export default function ProductCard({ product }) {
           </div>
 
           <button
-            onClick={() => addToCart(product)}
-            className="p-2 bg-pink-50 hover:bg-[#d81b60] text-brand-pink hover:text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center gap-1 text-xs font-bold"
+            onClick={(e) => {
+              e.stopPropagation();
+              addToCart(product);
+            }}
+            className="p-2.5 bg-pink-50 hover:bg-[#d81b60] text-brand-pink hover:text-white rounded-xl transition-all shadow-sm active:scale-95 flex items-center gap-1 text-xs font-bold"
             title="Add to Cart"
           >
             <ShoppingBag className="w-4 h-4" />

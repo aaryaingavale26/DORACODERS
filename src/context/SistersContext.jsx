@@ -4,10 +4,47 @@ import confetti from 'canvas-confetti';
 
 const SistersContext = createContext();
 
-const STORAGE_KEY = 'udaan_sisters_v3';
-const LIKES_KEY = 'udaan_user_likes_v3';
+const STORAGE_KEY = 'udaan_sisters_v4';
+const LIKES_KEY = 'udaan_user_likes_v4';
+
+// Popular Indian City Presets with real coordinates
+export const CITY_PRESETS = [
+  { id: 'jaipur', name: 'Jaipur (Rajasthan)', lat: 26.9124, lng: 75.7873 },
+  { id: 'delhi', name: 'Delhi NCR (South Ex)', lat: 28.5700, lng: 77.2200 },
+  { id: 'mumbai', name: 'Mumbai (Bandra/Dadar)', lat: 19.0596, lng: 72.8295 },
+  { id: 'bengaluru', name: 'Bengaluru (Indiranagar)', lat: 12.9716, lng: 77.5946 },
+  { id: 'lucknow', name: 'Lucknow (Hazratganj)', lat: 26.8467, lng: 80.9462 },
+  { id: 'kolkata', name: 'Kolkata (Park Street)', lat: 22.5500, lng: 88.3500 },
+  { id: 'hyderabad', name: 'Hyderabad (Banjara Hills)', lat: 17.4126, lng: 78.4346 },
+  { id: 'pune', name: 'Pune (Kothrud/Viman Nagar)', lat: 18.5204, lng: 73.8567 },
+];
+
+// Haversine formula to calculate accurate real-time distance in kilometers
+export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Number((R * c).toFixed(1));
+}
 
 export function SistersProvider({ children }) {
+  // User's live real-time location
+  const [userLocation, setUserLocation] = useState({
+    lat: DEFAULT_USER_LOCATION.lat,
+    lng: DEFAULT_USER_LOCATION.lng,
+    address: DEFAULT_USER_LOCATION.address,
+    isLiveGPS: false
+  });
+
+  const [selectedCityId, setSelectedCityId] = useState('jaipur');
+
   const [sisters, setSisters] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -34,9 +71,10 @@ export function SistersProvider({ children }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [maxDistanceKm, setMaxDistanceKm] = useState(5); // 3, 5, 10, 50
-  const [sortBy, setSortBy] = useState('featured'); // 'featured', 'rating', 'price-asc', 'price-desc', 'likes'
+  const [sortBy, setSortBy] = useState('featured'); // 'featured', 'rating', 'price-asc', 'price-desc', 'likes', 'distance'
   const [viewMode, setViewMode] = useState('split'); // 'grid', 'map', 'split'
   const [activeSisterOnMap, setActiveSisterOnMap] = useState(null);
+  const [isLocatingGPS, setIsLocatingGPS] = useState(false);
 
   // Modals state
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
@@ -69,13 +107,110 @@ export function SistersProvider({ children }) {
     }, 4000);
   };
 
+  // Real-time GPS Detection
+  const detectLiveGPSLocation = () => {
+    if (!navigator.geolocation) {
+      showToast("⚠️ Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setIsLocatingGPS(true);
+    showToast("🛰️ Detecting your real-time GPS coordinates...");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({
+          lat: latitude,
+          lng: longitude,
+          address: "Current GPS Location",
+          isLiveGPS: true
+        });
+        setIsLocatingGPS(false);
+        showToast("📍 Live GPS Location detected! Recalculating nearby sisters.");
+
+        // Automatically position surrounding sisters around the user's real GPS coordinates
+        setSisters(prev =>
+          prev.map((sister, idx) => {
+            const angle = (idx / prev.length) * Math.PI * 2;
+            const dist = sister.distanceKm || (0.8 + idx * 0.4);
+            const latOffset = (dist / 111) * Math.cos(angle);
+            const lngOffset = (dist / (111 * Math.cos(latitude * (Math.PI / 180)))) * Math.sin(angle);
+
+            return {
+              ...sister,
+              coordinates: {
+                lat: latitude + latOffset,
+                lng: longitude + lngOffset
+              },
+              distance: `${dist.toFixed(1)} km away`,
+              distanceKm: dist
+            };
+          })
+        );
+      },
+      (error) => {
+        console.error("GPS error:", error);
+        setIsLocatingGPS(false);
+        showToast("⚠️ Could not access GPS. Please allow location permissions.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Switch City Preset
+  const switchCity = (cityId) => {
+    const city = CITY_PRESETS.find(c => c.id === cityId);
+    if (!city) return;
+
+    setSelectedCityId(cityId);
+    setUserLocation({
+      lat: city.lat,
+      lng: city.lng,
+      address: city.name,
+      isLiveGPS: false
+    });
+
+    // Reposition sisters around new city center
+    setSisters(prev =>
+      prev.map((sister, idx) => {
+        const angle = (idx / prev.length) * Math.PI * 2;
+        const dist = 0.8 + (idx * 0.45);
+        const latOffset = (dist / 111) * Math.cos(angle);
+        const lngOffset = (dist / (111 * Math.cos(city.lat * (Math.PI / 180)))) * Math.sin(angle);
+
+        return {
+          ...sister,
+          coordinates: {
+            lat: city.lat + latOffset,
+            lng: city.lng + lngOffset
+          },
+          distance: `${dist.toFixed(1)} km away`,
+          distanceKm: dist,
+          location: `${city.name.split(' ')[0]} Neighborhood Zone`
+        };
+      })
+    );
+
+    showToast(`📍 Switched to ${city.name}. Showing local verified sisters.`);
+  };
+
+  // Move user location manually (e.g. dragging pin)
+  const updateUserPinLocation = (newLat, newLng) => {
+    setUserLocation(prev => ({
+      ...prev,
+      lat: newLat,
+      lng: newLng,
+      address: "Custom Pinned Zone"
+    }));
+  };
+
   // Enroll new sister
   const enrollSister = (formData) => {
-    const distNum = Number(formData.distance) || 1.1;
-    // Generate realistic relative coordinates around center
+    const distNum = Number(formData.distance) || 1.2;
     const angle = Math.random() * Math.PI * 2;
     const latOffset = (distNum / 111) * Math.cos(angle);
-    const lngOffset = (distNum / (111 * Math.cos(DEFAULT_USER_LOCATION.lat * (Math.PI / 180)))) * Math.sin(angle);
+    const lngOffset = (distNum / (111 * Math.cos(userLocation.lat * (Math.PI / 180)))) * Math.sin(angle);
 
     const newSister = {
       id: `sister-${Date.now()}`,
@@ -92,10 +227,10 @@ export function SistersProvider({ children }) {
       distance: `${distNum.toFixed(1)} km away`,
       distanceKm: distNum,
       coordinates: {
-        lat: DEFAULT_USER_LOCATION.lat + latOffset,
-        lng: DEFAULT_USER_LOCATION.lng + lngOffset
+        lat: userLocation.lat + latOffset,
+        lng: userLocation.lng + lngOffset
       },
-      location: formData.location || "Local Community Zone",
+      location: formData.location || `${userLocation.address} Zone`,
       experience: formData.experience || "Skilled professional with dedicated local training.",
       phone: formData.phone || "+91 98000 00000",
       availableDays: formData.availableDays?.length ? formData.availableDays : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
@@ -122,7 +257,7 @@ export function SistersProvider({ children }) {
     setIsEnrollModalOpen(false);
   };
 
-  // Like / favorite a sister
+  // Like / favorite
   const toggleLike = (sisterId) => {
     const isLiked = !!userLikes[sisterId];
     setUserLikes(prev => ({
@@ -150,19 +285,34 @@ export function SistersProvider({ children }) {
     showToast("Reset to initial skilled sisters.");
   };
 
+  // Dynamically calculate distance from current real-time userLocation
+  const dynamicSisters = sisters.map(sister => {
+    if (sister.coordinates) {
+      const realDist = calculateDistanceKm(
+        userLocation.lat,
+        userLocation.lng,
+        sister.coordinates.lat,
+        sister.coordinates.lng
+      );
+      return {
+        ...sister,
+        distanceKm: realDist,
+        distance: `${realDist.toFixed(1)} km away`
+      };
+    }
+    return sister;
+  });
+
   // Computed filtered & sorted sisters
-  const filteredSisters = sisters.filter(sister => {
-    // Category filter
+  const filteredSisters = dynamicSisters.filter(sister => {
     if (selectedCategory !== 'all' && sister.category !== selectedCategory) {
       return false;
     }
 
-    // Distance Radius filter
-    if (sister.distanceKm && sister.distanceKm > maxDistanceKm) {
+    if (sister.distanceKm !== undefined && sister.distanceKm > maxDistanceKm) {
       return false;
     }
 
-    // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = sister.name.toLowerCase().includes(q);
@@ -176,6 +326,7 @@ export function SistersProvider({ children }) {
 
     return true;
   }).sort((a, b) => {
+    if (sortBy === 'distance') return (a.distanceKm || 0) - (b.distanceKm || 0);
     if (sortBy === 'rating') return b.rating - a.rating;
     if (sortBy === 'price-asc') return a.rate - b.rate;
     if (sortBy === 'price-desc') return b.rate - a.rate;
@@ -185,8 +336,14 @@ export function SistersProvider({ children }) {
 
   return (
     <SistersContext.Provider value={{
-      sisters,
+      sisters: dynamicSisters,
       filteredSisters,
+      userLocation,
+      detectLiveGPSLocation,
+      isLocatingGPS,
+      switchCity,
+      selectedCityId,
+      updateUserPinLocation,
       searchQuery,
       setSearchQuery,
       selectedCategory,
