@@ -9,13 +9,11 @@ import {
   Package,
   UserPlus, 
   Search, 
-  Heart, 
   Menu, 
   X,
   Sparkles,
   ShieldCheck,
-  MapPin,
-  SlidersHorizontal
+  ChevronDown
 } from 'lucide-react';
 import GlobalSearchModal from './search/GlobalSearchModal';
 
@@ -38,7 +36,7 @@ export default function Navbar() {
         <div className="bg-gradient-to-r from-pink-900 via-brand-800 to-pink-900 text-white text-xs font-medium py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-pink-300 animate-pulse" />
           <span>100% Direct Income to Rural Women Artisans & Skilled Sisters across India</span>
-          <span className="hidden md:inline text-pink-300">| Free doorstep service consultation</span>
+          <span className="hidden md:inline text-pink-300">| Free doorstep consultation</span>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -78,22 +76,19 @@ export default function Navbar() {
               </nav>
             </div>
 
-            {/* Always Functional & Clickable Global Search & Filter Bar */}
+            {/* Clean Simple Text Search Bar with Text Category Selector */}
             <div 
               onClick={() => setIsSearchModalOpen(true)}
               className="flex-1 max-w-xs md:max-w-sm lg:max-w-md cursor-pointer group"
             >
-              <div className="flex items-center justify-between bg-warm-100/90 hover:bg-warm-100 border border-warm-300 group-hover:border-pink-400 rounded-full px-3.5 py-2 transition-all shadow-sm">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Search className="w-4 h-4 text-gray-500 group-hover:text-brand-pink shrink-0" />
-                  <span className="text-xs sm:text-sm text-gray-500 font-medium truncate select-none">
-                    Search sisters, services, crafts...
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-warm-300 text-[10px] font-bold text-gray-700 shrink-0">
-                  <SlidersHorizontal className="w-3 h-3 text-[#d81b60]" />
-                  <span>Filter</span>
-                </div>
+              <div className="flex items-center bg-warm-100/90 hover:bg-warm-100 border border-warm-300 group-hover:border-pink-400 rounded-full px-3.5 py-2 transition-all shadow-sm">
+                <Search className="w-4 h-4 text-gray-400 group-hover:text-brand-pink shrink-0 mr-2" />
+                <span className="text-xs sm:text-sm text-gray-500 font-medium truncate flex-1 select-none">
+                  Search by skill, craft or category...
+                </span>
+                <span className="text-[11px] font-bold text-pink-700 bg-pink-50 border border-pink-200 px-2.5 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                  Categories <ChevronDown className="w-3 h-3" />
+                </span>
               </div>
             </div>
 
@@ -176,10 +171,10 @@ export default function Navbar() {
               >
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Search className="w-4 h-4" />
-                  <span>Search sisters, services, crafts...</span>
+                  <span>Search by skill, craft or category...</span>
                 </div>
                 <span className="text-[10px] font-bold bg-white px-2 py-0.5 rounded-full border border-warm-200 text-brand-pink">
-                  Filters
+                  Categories ▾
                 </span>
               </div>
 
@@ -197,7 +192,7 @@ export default function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="px-3 py-2 text-gray-700 hover:bg-warm-100 rounded-lg"
                 >
-                  Handmade Crafts Store (32+ Items)
+                  Handmade Crafts Store
                 </a>
                 <button
                   onClick={() => {
@@ -243,7 +238,7 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Global Search & Filter Modal */}
+      {/* Clean Global Search & Category Filter Modal */}
       {isSearchModalOpen && (
         <GlobalSearchModal
           isOpen={isSearchModalOpen}
