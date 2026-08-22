@@ -1,0 +1,80 @@
+export const initialProducts = [
+  {
+    id: "prod-1",
+    name: "Handcrafted Blue Pottery Ceramic Vase",
+    artisan: "Meera Bai (Jaipur, Rajasthan)",
+    category: "pottery",
+    price: 890,
+    originalPrice: 1200,
+    rating: 4.9,
+    reviewsCount: 48,
+    image: "https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?w=600&auto=format&fit=crop&q=80",
+    description: "Traditional Jaipur blue pottery featuring quartz stone paste, hand-painted floral motifs, and high-glaze finish.",
+    inStock: true
+  },
+  {
+    id: "prod-2",
+    name: "Hand-Spun Chanderi Silk Saree with Zari",
+    artisan: "Kalyani Devi (Madhya Pradesh)",
+    category: "textiles",
+    price: 3450,
+    originalPrice: 4200,
+    rating: 5.0,
+    reviewsCount: 36,
+    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600&auto=format&fit=crop&q=80",
+    description: "Woven on pit looms over 18 days with pure mulberry silk warp, cotton weft, and authentic golden zari border.",
+    inStock: true
+  },
+  {
+    id: "prod-3",
+    name: "Dokra Brass Tribal Figurine & Candle Stand",
+    artisan: "Somari Murmu (Jharkhand)",
+    category: "home-decor",
+    price: 1150,
+    originalPrice: 1500,
+    rating: 4.8,
+    reviewsCount: 29,
+    image: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80",
+    description: "Lost-wax cast brass sculpture made using centuries-old non-ferrous metal casting art passed down through tribal generations.",
+    inStock: true
+  },
+  {
+    id: "prod-4",
+    name: "Hand-Embroidered Lambani Mirror Jewelry Box",
+    artisan: "Basamma Banjara (Karnataka)",
+    category: "jewelry",
+    price: 650,
+    originalPrice: 850,
+    rating: 4.7,
+    reviewsCount: 52,
+    image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=600&auto=format&fit=crop&q=80",
+    description: "Geometric cross-stitch and mirror-work box handmade from natural cotton dyes by the nomadic Banjara women artisans.",
+    inStock: true
+  },
+  {
+    id: "prod-5",
+    name: "Handmade Terracotta Chai Kulhad Set (Set of 6)",
+    artisan: "Lata & Village Women SHG (Gorakhpur)",
+    category: "pottery",
+    price: 420,
+    originalPrice: 550,
+    rating: 4.9,
+    reviewsCount: 94,
+    image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80",
+    description: "100% natural clay baked in traditional kilns, non-toxic, eco-friendly, adding authentic earthy aroma to your tea.",
+    inStock: true
+  },
+  {
+    id: "prod-6",
+    name: "Natural Cold-Pressed Wild Honey & Forest Spices",
+    artisan: "Kisan Mahila Federation (Uttarakhand)",
+    category: "organic",
+    price: 580,
+    originalPrice: 700,
+    rating: 4.9,
+    reviewsCount: 63,
+    image: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=600&auto=format&fit=crop&q=80",
+    description: "Raw unprocessed Himalayan multi-flora honey sustainably harvested by mountain women beekeepers.",
+    inStock: true
+  }
+];
