@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useOrders } from '../../context/OrdersContext';
 import { 
   X, 
@@ -10,12 +10,24 @@ import {
   MessageCircle, 
   Download, 
   ShieldCheck,
-  HeartHandshake
+  HeartHandshake,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 
 export default function OrderTrackingModal() {
-  const { selectedOrderForTracking, setSelectedOrderForTracking, isMyOrdersOpen, setIsMyOrdersOpen, orders } = useOrders();
+  const { 
+    selectedOrderForTracking, 
+    setSelectedOrderForTracking, 
+    isMyOrdersOpen, 
+    setIsMyOrdersOpen, 
+    orders,
+    deleteOrder,
+    cancelOrder
+  } = useOrders();
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const activeOrder = selectedOrderForTracking || (isMyOrdersOpen && orders.length > 0 ? orders[0] : null);
 
@@ -24,6 +36,7 @@ export default function OrderTrackingModal() {
   const handleClose = () => {
     setSelectedOrderForTracking(null);
     setIsMyOrdersOpen(false);
+    setConfirmDeleteId(null);
   };
 
   const steps = [
@@ -32,6 +45,11 @@ export default function OrderTrackingModal() {
     { label: "In Transit", desc: "Dispatched via Speed Post / Courier", icon: Truck },
     { label: "Delivered", desc: "Arriving at your doorstep", icon: ShieldCheck }
   ];
+
+  const handleDelete = (orderId) => {
+    deleteOrder(orderId);
+    setConfirmDeleteId(null);
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
@@ -52,7 +70,7 @@ export default function OrderTrackingModal() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-pink-200">Track your handmade treasures from rural artisans</p>
+              <p className="text-xs text-pink-200">Track and manage your handmade craft orders</p>
             </div>
           </div>
 
@@ -64,18 +82,43 @@ export default function OrderTrackingModal() {
           </button>
         </div>
 
+        {/* Multi-Order Tab Selector if user has multiple orders */}
+        {orders.length > 1 && (
+          <div className="bg-warm-100 px-5 py-2.5 border-b border-warm-200 flex items-center gap-2 overflow-x-auto">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider shrink-0">Your Orders:</span>
+            {orders.map(ord => (
+              <button
+                key={ord.id}
+                onClick={() => setSelectedOrderForTracking(ord)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                  activeOrder?.id === ord.id
+                    ? 'bg-[#d81b60] text-white shadow-sm'
+                    : 'bg-white text-gray-700 hover:bg-pink-50 border border-warm-200'
+                }`}
+              >
+                {ord.orderId} ({formatCurrency(ord.total)})
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Modal Body */}
         {activeOrder ? (
           <div className="flex-1 p-5 sm:p-6 overflow-y-auto space-y-6 bg-[#faf7f5]">
             
-            {/* Delivery Estimate Banner */}
+            {/* Status & Delivery Estimate Banner */}
             <div className="bg-white p-4 rounded-2xl border border-warm-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-pink-700 block">
-                  Estimated Delivery
-                </span>
-                <span className="text-base font-extrabold text-gray-900">
-                  {activeOrder.estimatedDelivery}
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
+                    activeOrder.status === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {activeOrder.status}
+                  </span>
+                  <span className="text-xs text-gray-500 font-medium">Estimated Delivery:</span>
+                </div>
+                <span className="text-base font-extrabold text-gray-900 mt-1 block">
+                  {activeOrder.status === 'Cancelled' ? 'Order Cancelled' : activeOrder.estimatedDelivery}
                 </span>
               </div>
 
@@ -87,47 +130,53 @@ export default function OrderTrackingModal() {
               </div>
             </div>
 
-            {/* Visual Step Timeline */}
-            <div className="bg-white p-5 rounded-2xl border border-warm-200 shadow-sm">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-4">
-                Shipment Status
-              </h4>
+            {/* Visual Step Timeline (if not cancelled) */}
+            {activeOrder.status !== 'Cancelled' ? (
+              <div className="bg-white p-5 rounded-2xl border border-warm-200 shadow-sm">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-4">
+                  Shipment Status
+                </h4>
 
-              <div className="relative flex justify-between items-start">
-                {/* Horizontal line */}
-                <div className="absolute top-4 left-6 right-6 h-0.5 bg-warm-200 -z-0" />
-                <div 
-                  className="absolute top-4 left-6 h-0.5 bg-[#d81b60] transition-all -z-0"
-                  style={{ width: `${(activeOrder.currentStep / (steps.length - 1)) * 90}%` }}
-                />
+                <div className="relative flex justify-between items-start">
+                  <div className="absolute top-4 left-6 right-6 h-0.5 bg-warm-200 -z-0" />
+                  <div 
+                    className="absolute top-4 left-6 h-0.5 bg-[#d81b60] transition-all -z-0"
+                    style={{ width: `${(activeOrder.currentStep / (steps.length - 1)) * 90}%` }}
+                  />
 
-                {steps.map((step, idx) => {
-                  const Icon = step.icon;
-                  const isDone = idx <= activeOrder.currentStep;
-                  const isCurrent = idx === activeOrder.currentStep;
+                  {steps.map((step, idx) => {
+                    const Icon = step.icon;
+                    const isDone = idx <= activeOrder.currentStep;
+                    const isCurrent = idx === activeOrder.currentStep;
 
-                  return (
-                    <div key={idx} className="flex flex-col items-center text-center z-10 max-w-[80px]">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                          isDone
-                            ? 'bg-[#d81b60] text-white ring-4 ring-pink-100 shadow-sm'
-                            : 'bg-warm-100 text-gray-400 border border-warm-300'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
+                    return (
+                      <div key={idx} className="flex flex-col items-center text-center z-10 max-w-[80px]">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                            isDone
+                              ? 'bg-[#d81b60] text-white ring-4 ring-pink-100 shadow-sm'
+                              : 'bg-warm-100 text-gray-400 border border-warm-300'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span className={`text-[11px] font-bold mt-2 ${isCurrent ? 'text-[#d81b60]' : isDone ? 'text-gray-900' : 'text-gray-400'}`}>
+                          {step.label}
+                        </span>
+                        <span className="text-[9px] text-gray-400 mt-0.5 hidden sm:block">
+                          {step.desc}
+                        </span>
                       </div>
-                      <span className={`text-[11px] font-bold mt-2 ${isCurrent ? 'text-[#d81b60]' : isDone ? 'text-gray-900' : 'text-gray-400'}`}>
-                        {step.label}
-                      </span>
-                      <span className="text-[9px] text-gray-400 mt-0.5 hidden sm:block">
-                        {step.desc}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-red-50 p-4 rounded-2xl border border-red-200 text-red-800 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>This order was cancelled. No payment or dispatch will take place.</span>
+              </div>
+            )}
 
             {/* Ordered Items List */}
             <div className="bg-white p-5 rounded-2xl border border-warm-200 shadow-sm space-y-3">
@@ -197,13 +246,35 @@ export default function OrderTrackingModal() {
               </div>
             </div>
 
-            {/* Bottom Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            {/* Delete / Cancel Confirmation Alert */}
+            {confirmDeleteId === activeOrder.id ? (
+              <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl text-xs space-y-2 animate-fade-in">
+                <p className="font-bold text-rose-900">Are you sure you want to permanently delete this order?</p>
+                <p className="text-rose-700">This will remove order {activeOrder.orderId} from your account.</p>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => handleDelete(activeOrder.id)}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl"
+                  >
+                    Yes, Delete Order
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteId(null)}
+                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-xl"
+                  >
+                    Keep Order
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Bottom Actions Row (WhatsApp, Download Invoice & Delete Order) */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <a
                 href={`https://wa.me/919876543210?text=Hello%20Udaan%20Support,%20I%20am%20inquiring%20about%20my%20order%20${activeOrder.orderId}.`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+                className="flex-1 min-w-[170px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>WhatsApp Order Helpdesk</span>
@@ -211,11 +282,23 @@ export default function OrderTrackingModal() {
 
               <button
                 onClick={() => alert(`Receipt downloaded for Order ${activeOrder.orderId} (₹${activeOrder.total})`)}
-                className="flex-1 bg-warm-200 hover:bg-warm-300 text-gray-800 font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all"
+                className="flex-1 min-w-[150px] bg-warm-200 hover:bg-warm-300 text-gray-800 font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition-all"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Invoice</span>
               </button>
+
+              {/* Delete / Cancel Order Button */}
+              {confirmDeleteId !== activeOrder.id && (
+                <button
+                  onClick={() => setConfirmDeleteId(activeOrder.id)}
+                  className="px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 font-bold rounded-xl text-xs sm:text-sm flex items-center gap-1.5 border border-red-200 transition-all"
+                  title="Delete or Cancel this Order"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Order</span>
+                </button>
+              )}
             </div>
 
           </div>
@@ -223,7 +306,7 @@ export default function OrderTrackingModal() {
           <div className="p-8 text-center space-y-3 bg-[#faf7f5]">
             <Package className="w-12 h-12 text-gray-300 mx-auto" />
             <h3 className="font-bold text-gray-700 font-serif">No Orders Found</h3>
-            <p className="text-xs text-gray-500">Explore the handmade craft store and place your first order.</p>
+            <p className="text-xs text-gray-500">All orders have been removed or no orders placed yet.</p>
           </div>
         )}
 

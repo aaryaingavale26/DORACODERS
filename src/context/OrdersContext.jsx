@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 
 const OrdersContext = createContext();
-const ORDERS_KEY = 'udaan_orders_v2';
+const ORDERS_KEY = 'udaan_orders_v3';
 
 const sampleInitialOrders = [
   {
@@ -108,10 +108,36 @@ export function OrdersProvider({ children }) {
     return newOrder;
   };
 
+  const deleteOrder = (orderId) => {
+    setOrders(prev => prev.filter(o => o.id !== orderId && o.orderId !== orderId));
+    if (selectedOrderForTracking && (selectedOrderForTracking.id === orderId || selectedOrderForTracking.orderId === orderId)) {
+      setSelectedOrderForTracking(null);
+    }
+  };
+
+  const cancelOrder = (orderId) => {
+    setOrders(prev =>
+      prev.map(o =>
+        (o.id === orderId || o.orderId === orderId)
+          ? { ...o, status: "Cancelled", currentStep: 0 }
+          : o
+      )
+    );
+    if (selectedOrderForTracking && (selectedOrderForTracking.id === orderId || selectedOrderForTracking.orderId === orderId)) {
+      setSelectedOrderForTracking(prev => ({
+        ...prev,
+        status: "Cancelled",
+        currentStep: 0
+      }));
+    }
+  };
+
   return (
     <OrdersContext.Provider value={{
       orders,
       placeOrder,
+      deleteOrder,
+      cancelOrder,
       isMyOrdersOpen,
       setIsMyOrdersOpen,
       selectedOrderForTracking,
