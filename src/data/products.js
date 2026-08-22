@@ -153,7 +153,7 @@ export const initialProducts = [
     originalPrice: 2800,
     rating: 4.9,
     reviewsCount: 51,
-    image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?w=600&auto=format&fit=crop&q=80",
+    image: "https://images.unsplash.com/photo-1620619767323-b95a89183081?w=600&auto=format&fit=crop&q=80",
     description: "Solid virgin brass engraved plate with vibrant enamel meenakari artwork, includes diya, bell, kalash, and incense holder.",
     materials: "Solid Brass & Enamel Color",
     dimensions: "10 inches diameter thali",

@@ -4,24 +4,24 @@ import confetti from 'canvas-confetti';
 
 const SistersContext = createContext();
 
-const STORAGE_KEY = 'udaan_sisters_v4';
-const LIKES_KEY = 'udaan_user_likes_v4';
+const STORAGE_KEY = 'udaan_sisters_v5';
+const LIKES_KEY = 'udaan_user_likes_v5';
 
-// Popular Indian City Presets with real coordinates
+// Popular Indian City Presets
 export const CITY_PRESETS = [
   { id: 'jaipur', name: 'Jaipur (Rajasthan)', lat: 26.9124, lng: 75.7873 },
   { id: 'delhi', name: 'Delhi NCR (South Ex)', lat: 28.5700, lng: 77.2200 },
   { id: 'mumbai', name: 'Mumbai (Bandra/Dadar)', lat: 19.0596, lng: 72.8295 },
   { id: 'bengaluru', name: 'Bengaluru (Indiranagar)', lat: 12.9716, lng: 77.5946 },
+  { id: 'pune', name: 'Pune (Kothrud/Viman Nagar)', lat: 18.5204, lng: 73.8567 },
+  { id: 'ahmedabad', name: 'Ahmedabad (Navrangpura)', lat: 23.0225, lng: 72.5714 },
   { id: 'lucknow', name: 'Lucknow (Hazratganj)', lat: 26.8467, lng: 80.9462 },
   { id: 'kolkata', name: 'Kolkata (Park Street)', lat: 22.5500, lng: 88.3500 },
   { id: 'hyderabad', name: 'Hyderabad (Banjara Hills)', lat: 17.4126, lng: 78.4346 },
-  { id: 'pune', name: 'Pune (Kothrud/Viman Nagar)', lat: 18.5204, lng: 73.8567 },
 ];
 
-// Haversine formula to calculate accurate real-time distance in kilometers
 export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Radius of the Earth in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
@@ -35,11 +35,11 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 export function SistersProvider({ children }) {
-  // User's live real-time location
   const [userLocation, setUserLocation] = useState({
     lat: DEFAULT_USER_LOCATION.lat,
     lng: DEFAULT_USER_LOCATION.lng,
     address: DEFAULT_USER_LOCATION.address,
+    city: "Jaipur",
     isLiveGPS: false
   });
 
@@ -67,47 +67,103 @@ export function SistersProvider({ children }) {
     return {};
   });
 
-  // Filters & State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [maxDistanceKm, setMaxDistanceKm] = useState(5); // 3, 5, 10, 50
-  const [sortBy, setSortBy] = useState('featured'); // 'featured', 'rating', 'price-asc', 'price-desc', 'likes', 'distance'
-  const [viewMode, setViewMode] = useState('split'); // 'grid', 'map', 'split'
+  const [maxDistanceKm, setMaxDistanceKm] = useState(5);
+  const [sortBy, setSortBy] = useState('featured');
+  const [viewMode, setViewMode] = useState('split');
   const [activeSisterOnMap, setActiveSisterOnMap] = useState(null);
   const [isLocatingGPS, setIsLocatingGPS] = useState(false);
 
-  // Modals state
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [selectedSisterForBooking, setSelectedSisterForBooking] = useState(null);
   const [selectedSisterForProfile, setSelectedSisterForProfile] = useState(null);
   const [selectedSisterForChat, setSelectedSisterForChat] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Sync to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sisters));
-    } catch (e) {
-      console.error("Failed to save sisters", e);
-    }
-  }, [sisters]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LIKES_KEY, JSON.stringify(userLikes));
-    } catch (e) {
-      console.error("Failed to save likes", e);
-    }
-  }, [userLikes]);
-
   const showToast = (message) => {
     setToastMessage(message);
     setTimeout(() => {
       setToastMessage(null);
-    }, 4000);
+    }, 4500);
   };
 
-  // Real-time GPS Detection
+  // Helper to place sisters around a coordinate
+  const repositionSistersAroundCoords = (lat, lng, cityName = "Your Neighborhood") => {
+    setSisters(prev =>
+      prev.map((sister, idx) => {
+        const angle = (idx / prev.length) * Math.PI * 2;
+        const dist = 0.7 + (idx * 0.4);
+        const latOffset = (dist / 111) * Math.cos(angle);
+        const lngOffset = (dist / (111 * Math.cos(lat * (Math.PI / 180)))) * Math.sin(angle);
+
+        return {
+          ...sister,
+          coordinates: {
+            lat: lat + latOffset,
+            lng: lng + lngOffset
+          },
+          distance: `${dist.toFixed(1)} km away`,
+          distanceKm: dist,
+          location: `${cityName} Zone`
+        };
+      })
+    );
+  };
+
+  // Auto-detect location on initial load (IP Geolocation fallback + browser GPS)
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. First try fast IP Geolocation
+    fetch('https://ipapi.co/json/')
+      .then(res => res.json())
+      .then(data => {
+        if (!isMounted) return;
+        if (data && data.latitude && data.longitude) {
+          const detectedCity = data.city || data.region || "Your Local Area";
+          setUserLocation({
+            lat: data.latitude,
+            lng: data.longitude,
+            address: `${detectedCity}, ${data.country_name || 'India'}`,
+            city: detectedCity,
+            isLiveGPS: true
+          });
+
+          repositionSistersAroundCoords(data.latitude, data.longitude, detectedCity);
+          showToast(`📍 Live Location Auto-Detected: ${detectedCity} (${data.latitude.toFixed(2)}, ${data.longitude.toFixed(2)})`);
+        }
+      })
+      .catch(err => {
+        console.log("IP location fallback failed, using browser geolocation", err);
+      });
+
+    // 2. Also attempt high-precision device GPS
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (!isMounted) return;
+          const { latitude, longitude } = pos.coords;
+          setUserLocation(prev => ({
+            ...prev,
+            lat: latitude,
+            lng: longitude,
+            address: "Live Device GPS",
+            isLiveGPS: true
+          }));
+          repositionSistersAroundCoords(latitude, longitude, "Local GPS");
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Manual GPS button trigger
   const detectLiveGPSLocation = () => {
     if (!navigator.geolocation) {
       showToast("⚠️ Geolocation is not supported by your browser.");
@@ -115,7 +171,7 @@ export function SistersProvider({ children }) {
     }
 
     setIsLocatingGPS(true);
-    showToast("🛰️ Detecting your real-time GPS coordinates...");
+    showToast("🛰️ Detecting live device coordinates...");
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -123,36 +179,18 @@ export function SistersProvider({ children }) {
         setUserLocation({
           lat: latitude,
           lng: longitude,
-          address: "Current GPS Location",
+          address: "Exact Device GPS",
+          city: "Live GPS",
           isLiveGPS: true
         });
         setIsLocatingGPS(false);
-        showToast("📍 Live GPS Location detected! Recalculating nearby sisters.");
-
-        // Automatically position surrounding sisters around the user's real GPS coordinates
-        setSisters(prev =>
-          prev.map((sister, idx) => {
-            const angle = (idx / prev.length) * Math.PI * 2;
-            const dist = sister.distanceKm || (0.8 + idx * 0.4);
-            const latOffset = (dist / 111) * Math.cos(angle);
-            const lngOffset = (dist / (111 * Math.cos(latitude * (Math.PI / 180)))) * Math.sin(angle);
-
-            return {
-              ...sister,
-              coordinates: {
-                lat: latitude + latOffset,
-                lng: longitude + lngOffset
-              },
-              distance: `${dist.toFixed(1)} km away`,
-              distanceKm: dist
-            };
-          })
-        );
+        repositionSistersAroundCoords(latitude, longitude, "Live GPS");
+        showToast(`📍 GPS Locked: Lat ${latitude.toFixed(4)}, Lng ${longitude.toFixed(4)}`);
       },
       (error) => {
         console.error("GPS error:", error);
         setIsLocatingGPS(false);
-        showToast("⚠️ Could not access GPS. Please allow location permissions.");
+        showToast("⚠️ Could not access device GPS. Using network location.");
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -168,34 +206,14 @@ export function SistersProvider({ children }) {
       lat: city.lat,
       lng: city.lng,
       address: city.name,
+      city: city.name.split(' ')[0],
       isLiveGPS: false
     });
 
-    // Reposition sisters around new city center
-    setSisters(prev =>
-      prev.map((sister, idx) => {
-        const angle = (idx / prev.length) * Math.PI * 2;
-        const dist = 0.8 + (idx * 0.45);
-        const latOffset = (dist / 111) * Math.cos(angle);
-        const lngOffset = (dist / (111 * Math.cos(city.lat * (Math.PI / 180)))) * Math.sin(angle);
-
-        return {
-          ...sister,
-          coordinates: {
-            lat: city.lat + latOffset,
-            lng: city.lng + lngOffset
-          },
-          distance: `${dist.toFixed(1)} km away`,
-          distanceKm: dist,
-          location: `${city.name.split(' ')[0]} Neighborhood Zone`
-        };
-      })
-    );
-
+    repositionSistersAroundCoords(city.lat, city.lng, city.name.split(' ')[0]);
     showToast(`📍 Switched to ${city.name}. Showing local verified sisters.`);
   };
 
-  // Move user location manually (e.g. dragging pin)
   const updateUserPinLocation = (newLat, newLng) => {
     setUserLocation(prev => ({
       ...prev,
@@ -205,9 +223,8 @@ export function SistersProvider({ children }) {
     }));
   };
 
-  // Enroll new sister
   const enrollSister = (formData) => {
-    const distNum = Number(formData.distance) || 1.2;
+    const distNum = Number(formData.distance) || 1.1;
     const angle = Math.random() * Math.PI * 2;
     const latOffset = (distNum / 111) * Math.cos(angle);
     const lngOffset = (distNum / (111 * Math.cos(userLocation.lat * (Math.PI / 180)))) * Math.sin(angle);
@@ -230,7 +247,7 @@ export function SistersProvider({ children }) {
         lat: userLocation.lat + latOffset,
         lng: userLocation.lng + lngOffset
       },
-      location: formData.location || `${userLocation.address} Zone`,
+      location: formData.location || `${userLocation.city || 'Neighborhood'} Zone`,
       experience: formData.experience || "Skilled professional with dedicated local training.",
       phone: formData.phone || "+91 98000 00000",
       availableDays: formData.availableDays?.length ? formData.availableDays : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
@@ -257,7 +274,6 @@ export function SistersProvider({ children }) {
     setIsEnrollModalOpen(false);
   };
 
-  // Like / favorite
   const toggleLike = (sisterId) => {
     const isLiked = !!userLikes[sisterId];
     setUserLikes(prev => ({
@@ -278,14 +294,12 @@ export function SistersProvider({ children }) {
     );
   };
 
-  // Reset to default seed data
   const resetToSeedData = () => {
     setSisters(initialSisters);
     localStorage.removeItem(STORAGE_KEY);
     showToast("Reset to initial skilled sisters.");
   };
 
-  // Dynamically calculate distance from current real-time userLocation
   const dynamicSisters = sisters.map(sister => {
     if (sister.coordinates) {
       const realDist = calculateDistanceKm(
@@ -303,7 +317,6 @@ export function SistersProvider({ children }) {
     return sister;
   });
 
-  // Computed filtered & sorted sisters
   const filteredSisters = dynamicSisters.filter(sister => {
     if (selectedCategory !== 'all' && sister.category !== selectedCategory) {
       return false;
@@ -372,7 +385,6 @@ export function SistersProvider({ children }) {
       showToast
     }}>
       {children}
-      {/* Global Toast */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#231b15] text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border border-pink-500/30 animate-fade-in">
           <span className="text-sm font-medium">{toastMessage}</span>

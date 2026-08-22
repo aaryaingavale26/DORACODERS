@@ -2,25 +2,30 @@ import React, { useState } from 'react';
 import { useSisters } from '../context/SistersContext';
 import { useCart } from '../context/CartContext';
 import { useBookings } from '../context/BookingContext';
+import { useOrders } from '../context/OrdersContext';
 import { 
   ShoppingBag, 
   Calendar, 
+  Package,
   UserPlus, 
   Search, 
   Heart, 
   Menu, 
   X,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  MapPin
 } from 'lucide-react';
 
 export default function Navbar() {
   const { setIsEnrollModalOpen, searchQuery, setSearchQuery } = useSisters();
   const { totalItemsCount, setIsCartOpen } = useCart();
   const { bookings, setIsMyBookingsOpen } = useBookings();
+  const { orders, setIsMyOrdersOpen } = useOrders();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const activeBookingsCount = bookings.filter(b => b.status !== 'Cancelled').length;
+  const activeOrdersCount = orders.length;
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-warm-200/80 transition-all shadow-sm">
@@ -72,7 +77,7 @@ export default function Navbar() {
           <div className="hidden md:flex flex-1 max-w-xs lg:max-w-sm relative">
             <input
               type="text"
-              placeholder="Search sisters, tailoring, pottery..."
+              placeholder="Search sisters, services, crafts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm bg-warm-100/90 border border-warm-300 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500/30 focus:border-brand-pink transition-all"
@@ -90,6 +95,22 @@ export default function Navbar() {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
+            
+            {/* Orders & Tracking Button */}
+            <button
+              onClick={() => setIsMyOrdersOpen(true)}
+              className="relative p-2 text-gray-700 hover:text-brand-pink hover:bg-pink-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
+              title="Track My Craft Orders"
+            >
+              <Package className="w-5 h-5 text-gray-600" />
+              <span className="hidden sm:inline">Orders</span>
+              {activeOrdersCount > 0 && (
+                <span className="w-4 h-4 bg-emerald-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center -ml-1">
+                  {activeOrdersCount}
+                </span>
+              )}
+            </button>
+
             {/* My Bookings Button */}
             <button
               onClick={() => setIsMyBookingsOpen(true)}
@@ -120,10 +141,10 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Primary Enroll CTA: Urban Company Partner Style */}
+            {/* Primary Enroll CTA */}
             <button
               onClick={() => setIsEnrollModalOpen(true)}
-              className="flex items-center gap-1.5 bg-[#d81b60] hover:bg-[#c2185b] text-white px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold shadow-md shadow-pink-600/20 hover:shadow-lg hover:shadow-pink-600/30 active:scale-95 transition-all"
+              className="flex items-center gap-1.5 bg-[#d81b60] hover:bg-[#c2185b] text-white px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold shadow-md shadow-pink-600/20 hover:shadow-lg active:scale-95 transition-all"
             >
               <UserPlus className="w-4 h-4" />
               <span>Enroll as Sister</span>
@@ -160,7 +181,7 @@ export default function Navbar() {
                 className="px-3 py-2 text-pink-700 bg-pink-50 rounded-lg flex items-center justify-between"
               >
                 <span>Hire Skilled Sisters</span>
-                <span className="text-xs bg-pink-200 text-pink-800 px-2 py-0.5 rounded-full">Active</span>
+                <span className="text-xs bg-pink-200 text-pink-800 px-2 py-0.5 rounded-full">Radar Active</span>
               </a>
               <a 
                 href="#products" 
@@ -169,19 +190,40 @@ export default function Navbar() {
               >
                 Handmade Crafts Store
               </a>
-              <a 
-                href="#impact" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-3 py-2 text-gray-700 hover:bg-warm-100 rounded-lg"
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsMyOrdersOpen(true);
+                }}
+                className="w-full text-left px-3 py-2 text-gray-700 hover:bg-warm-100 rounded-lg flex items-center justify-between"
               >
-                Artisan Stories & Impact
-              </a>
+                <span>Track My Orders</span>
+                {activeOrdersCount > 0 && (
+                  <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                    {activeOrdersCount}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsMyBookingsOpen(true);
+                }}
+                className="w-full text-left px-3 py-2 text-gray-700 hover:bg-warm-100 rounded-lg flex items-center justify-between"
+              >
+                <span>My Service Bookings</span>
+                {activeBookingsCount > 0 && (
+                  <span className="text-xs bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full font-bold">
+                    {activeBookingsCount}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   setIsEnrollModalOpen(true);
                 }}
-                className="w-full text-left px-3 py-2 text-white bg-brand-pink hover:bg-brand-darkPink font-semibold rounded-lg flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-white bg-[#d81b60] hover:bg-[#c2185b] font-semibold rounded-lg flex items-center gap-2"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Join as a Skilled Sister Partner</span>
