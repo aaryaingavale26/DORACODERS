@@ -79,10 +79,10 @@ export default function SisterFilters() {
             onChange={(e) => setMaxDistanceKm(Number(e.target.value))}
             className="bg-warm-100/90 border border-warm-300 text-gray-900 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-pink-500/30 cursor-pointer"
           >
-            <option value={3}>Within 3 km zone (Fastest)</option>
-            <option value={5}>Within 5 km zone</option>
+            <option value={25}>All Neighborhoods (25 km)</option>
             <option value={10}>Within 10 km zone</option>
-            <option value={50}>All Neighborhoods</option>
+            <option value={5}>Within 5 km zone</option>
+            <option value={3}>Within 3 km zone (Fastest)</option>
           </select>
         </div>
 

@@ -1,21 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useSisters, CITY_PRESETS } from '../../context/SistersContext';
+import { useSisters } from '../../context/SistersContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../lib/utils';
 import { 
   MapPin, 
   Navigation, 
-  Globe, 
   Search, 
-  Crosshair, 
   Check, 
   Star, 
-  Heart,
-  Sliders,
-  Sparkles,
-  Layers,
   ArrowRight
 } from 'lucide-react';
 
@@ -33,14 +27,11 @@ export default function SisterMap() {
     userLocation,
     detectLiveGPSLocation,
     isLocatingGPS,
-    switchCity,
-    selectedCityId,
     updateUserPinLocation,
     maxDistanceKm, 
     setMaxDistanceKm,
     setSelectedSisterForBooking, 
     setSelectedSisterForProfile,
-    setSelectedSisterForChat,
     activeSisterOnMap,
     setActiveSisterOnMap,
     viewMode
@@ -229,7 +220,7 @@ export default function SisterMap() {
 
   }, [filteredSisters, activeSisterOnMap]);
 
-  // Geocoding Search (Find any area/city in India)
+  // Geocoding Search (Find any area/locality in India)
   const handleLocationSearch = (e) => {
     e.preventDefault();
     if (!searchLocationQuery.trim()) return;
@@ -246,7 +237,7 @@ export default function SisterMap() {
           updateUserPinLocation(lat, lng);
           setSearchLocationQuery('');
         } else {
-          alert("Location not found. Please try another area or city name.");
+          alert("Location not found. Please try another area or pincode.");
         }
       })
       .catch(err => {
@@ -266,17 +257,17 @@ export default function SisterMap() {
   return (
     <div className="space-y-3">
       
-      {/* Top Location Toolbar: GPS Status, City Selector, Radius Filters & Pincode/Locality Search */}
+      {/* Top Location Toolbar: GPS Status, Radius Filters & Locality Search (City dropdown removed) */}
       <div className="bg-white p-3.5 rounded-2xl border border-warm-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
         
-        {/* Left: GPS Status, City Selector & Radius Pills */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Left: GPS Status & Radius Distance Pills */}
+        <div className="flex flex-wrap items-center gap-2.5">
           
           {/* GPS Status Indicator */}
           <button
             onClick={detectLiveGPSLocation}
             disabled={isLocatingGPS}
-            className={`px-3 py-2 rounded-xl border font-bold flex items-center gap-1.5 transition-all ${
+            className={`px-3.5 py-2 rounded-xl border font-bold flex items-center gap-1.5 transition-all ${
               userLocation.isLiveGPS
                 ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
                 : 'bg-warm-100 hover:bg-white text-gray-800 border-warm-300 hover:border-pink-400'
@@ -287,30 +278,13 @@ export default function SisterMap() {
             <span>{isLocatingGPS ? 'Detecting GPS...' : userLocation.isLiveGPS ? '📍 GPS Locked' : 'Locate Me (GPS)'}</span>
           </button>
 
-          {/* City Selector Dropdown */}
-          <div className="flex items-center gap-1.5 bg-warm-50 px-2.5 py-1.5 rounded-xl border border-warm-200">
-            <Globe className="w-3.5 h-3.5 text-[#d81b60]" />
-            <span className="text-gray-500 font-medium">City:</span>
-            <select
-              value={selectedCityId}
-              onChange={(e) => switchCity(e.target.value)}
-              className="bg-transparent font-bold text-gray-900 focus:outline-none cursor-pointer"
-            >
-              {CITY_PRESETS.map(city => (
-                <option key={city.id} value={city.id}>
-                  {city.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Radius Filter Pills */}
           <div className="flex items-center gap-1 bg-warm-100 p-1 rounded-xl">
             {[3, 5, 10, 25].map(radius => (
               <button
                 key={radius}
                 onClick={() => setMaxDistanceKm(radius)}
-                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
+                className={`px-3 py-1 rounded-lg font-bold text-[11px] transition-all ${
                   maxDistanceKm === radius
                     ? 'bg-[#d81b60] text-white shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -326,7 +300,7 @@ export default function SisterMap() {
         <form onSubmit={handleLocationSearch} className="relative flex-1 min-w-[220px] max-w-sm">
           <input
             type="text"
-            placeholder="Search locality / pincode (e.g. Indiranagar, Nagpur...)"
+            placeholder="Search locality / pincode (e.g. Sector 14, Indiranagar...)"
             value={searchLocationQuery}
             onChange={(e) => setSearchLocationQuery(e.target.value)}
             className="w-full pl-8 pr-16 py-2 text-xs bg-warm-50 border border-warm-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500/30"
@@ -357,7 +331,7 @@ export default function SisterMap() {
               {userLocation.address || 'Active Zone'}
             </span>
             <span className="text-gray-500 block text-[10px]">
-              Showing {filteredSisters.length} sisters within {maxDistanceKm}km (Click map to move search)
+              Showing {filteredSisters.length} sister shops within {maxDistanceKm}km (Click map to move search)
             </span>
           </div>
         </div>
@@ -431,7 +405,7 @@ export default function SisterMap() {
         <div className="bg-white p-3 rounded-2xl border border-warm-200 shadow-sm">
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="text-xs font-bold uppercase tracking-wider text-gray-600">
-              Sisters Near This Pin ({filteredSisters.length})
+              Sisters Near This Pin ({filteredSisters.length} Shops Available)
             </span>
             <span className="text-[11px] text-pink-700 font-semibold">Click to focus on map</span>
           </div>

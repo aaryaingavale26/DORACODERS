@@ -5,22 +5,9 @@ import confetti from 'canvas-confetti';
 
 const SistersContext = createContext();
 
-const SISTERS_STORAGE_KEY = 'udaan_sisters_v7';
-const PRODUCTS_STORAGE_KEY = 'udaan_products_v7';
-const LIKES_KEY = 'udaan_user_likes_v7';
-
-export const CITY_PRESETS = [
-  { id: 'jaipur', name: 'Jaipur (Rajasthan)', lat: 26.9124, lng: 75.7873 },
-  { id: 'nagpur', name: 'Nagpur (Maharashtra)', lat: 21.1458, lng: 79.0882 },
-  { id: 'delhi', name: 'Delhi NCR (South Ex)', lat: 28.5700, lng: 77.2200 },
-  { id: 'mumbai', name: 'Mumbai (Bandra/Dadar)', lat: 19.0596, lng: 72.8295 },
-  { id: 'bengaluru', name: 'Bengaluru (Indiranagar)', lat: 12.9716, lng: 77.5946 },
-  { id: 'pune', name: 'Pune (Kothrud/Viman Nagar)', lat: 18.5204, lng: 73.8567 },
-  { id: 'ahmedabad', name: 'Ahmedabad (Navrangpura)', lat: 23.0225, lng: 72.5714 },
-  { id: 'lucknow', name: 'Lucknow (Hazratganj)', lat: 26.8467, lng: 80.9462 },
-  { id: 'kolkata', name: 'Kolkata (Park Street)', lat: 22.5500, lng: 88.3500 },
-  { id: 'hyderabad', name: 'Hyderabad (Banjara Hills)', lat: 17.4126, lng: 78.4346 },
-];
+const SISTERS_STORAGE_KEY = 'udaan_sisters_v8';
+const PRODUCTS_STORAGE_KEY = 'udaan_products_v8';
+const LIKES_KEY = 'udaan_user_likes_v8';
 
 export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -41,23 +28,23 @@ export function SistersProvider({ children }) {
     lat: DEFAULT_USER_LOCATION.lat,
     lng: DEFAULT_USER_LOCATION.lng,
     address: DEFAULT_USER_LOCATION.address,
-    city: "Jaipur",
+    city: "Local Hub",
     isLiveGPS: false
   });
 
-  const [selectedCityId, setSelectedCityId] = useState('jaipur');
-
-  // Sisters state
+  // Sisters state - always ensure all initial sisters are loaded
   const [sisters, setSisters] = useState(() => {
     try {
       const saved = localStorage.getItem(SISTERS_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= initialSisters.length) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error("Failed to load sisters", e);
     }
-    // Set initial mock sisters to be 'free' by default
     return initialSisters.map(s => ({
       ...s,
       subscription: s.subscription || 'free'
@@ -69,7 +56,10 @@ export function SistersProvider({ children }) {
     try {
       const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length >= initialProducts.length) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error("Failed to load products", e);
@@ -89,7 +79,7 @@ export function SistersProvider({ children }) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [maxDistanceKm, setMaxDistanceKm] = useState(5);
+  const [maxDistanceKm, setMaxDistanceKm] = useState(25); // Default to 25km so all shops are visible
   const [sortBy, setSortBy] = useState('featured');
   const [viewMode, setViewMode] = useState('split');
   const [activeSisterOnMap, setActiveSisterOnMap] = useState(null);
@@ -116,12 +106,13 @@ export function SistersProvider({ children }) {
     }, 4500);
   };
 
-  // Helper to place sisters around a coordinate
+  // Helper to place sisters around a coordinate clustered within 0.5km - 2.2km
   const repositionSistersAroundCoords = (lat, lng, cityName = "Your Neighborhood") => {
-    setSisters(prev =>
-      prev.map((sister, idx) => {
-        const angle = (idx / prev.length) * Math.PI * 2;
-        const dist = 0.6 + ((idx % 8) * 0.35) + ((idx % 3) * 0.15);
+    setSisters(prev => {
+      const baseSisters = prev.length >= initialSisters.length ? prev : initialSisters;
+      return baseSisters.map((sister, idx) => {
+        const angle = (idx / baseSisters.length) * Math.PI * 2;
+        const dist = 0.5 + ((idx % 8) * 0.22) + ((idx % 3) * 0.1);
         const latOffset = (dist / 111) * Math.cos(angle);
         const lngOffset = (dist / (111 * Math.cos(lat * (Math.PI / 180)))) * Math.sin(angle);
 
@@ -135,8 +126,8 @@ export function SistersProvider({ children }) {
           distanceKm: Number(dist.toFixed(1)),
           location: `${cityName} Zone`
         };
-      })
-    );
+      });
+    });
   };
 
   // Auto-detect location on initial load (IP Geolocation fallback + browser GPS)
@@ -221,23 +212,6 @@ export function SistersProvider({ children }) {
     );
   };
 
-  const switchCity = (cityId) => {
-    const city = CITY_PRESETS.find(c => c.id === cityId);
-    if (!city) return;
-
-    setSelectedCityId(cityId);
-    setUserLocation({
-      lat: city.lat,
-      lng: city.lng,
-      address: city.name,
-      city: city.name.split(' ')[0],
-      isLiveGPS: false
-    });
-
-    repositionSistersAroundCoords(city.lat, city.lng, city.name.split(' ')[0]);
-    showToast(`📍 Switched to ${city.name}. Showing local verified sisters.`);
-  };
-
   const updateUserPinLocation = (newLat, newLng) => {
     setUserLocation(prev => ({
       ...prev,
@@ -245,6 +219,7 @@ export function SistersProvider({ children }) {
       lng: newLng,
       address: "Custom Pinned Zone"
     }));
+    repositionSistersAroundCoords(newLat, newLng, "Custom Pinned");
   };
 
   const enrollSister = (formData) => {
@@ -402,11 +377,11 @@ export function SistersProvider({ children }) {
   };
 
   const resetToSeedData = () => {
-    setSisters(initialSisters.map(s => ({ ...s, subscription: 'free' })));
+    setSisters(initialSisters.map(s => ({ ...s, subscription: s.subscription || 'free' })));
     setProducts(initialProducts);
     localStorage.removeItem(SISTERS_STORAGE_KEY);
     localStorage.removeItem(PRODUCTS_STORAGE_KEY);
-    showToast("Reset to initial skilled sisters and products.");
+    showToast("Reset to initial 16 skilled sister shops and craft catalogs.");
   };
 
   // Enhance sister with dynamic distances
@@ -472,8 +447,6 @@ export function SistersProvider({ children }) {
       userLocation,
       detectLiveGPSLocation,
       isLocatingGPS,
-      switchCity,
-      selectedCityId,
       updateUserPinLocation,
       searchQuery,
       setSearchQuery,
