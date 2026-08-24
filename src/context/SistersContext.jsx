@@ -5,9 +5,9 @@ import confetti from 'canvas-confetti';
 
 const SistersContext = createContext();
 
-const SISTERS_STORAGE_KEY = 'udaan_sisters_v6';
-const PRODUCTS_STORAGE_KEY = 'udaan_products_v6';
-const LIKES_KEY = 'udaan_user_likes_v6';
+const SISTERS_STORAGE_KEY = 'udaan_sisters_v7';
+const PRODUCTS_STORAGE_KEY = 'udaan_products_v7';
+const LIKES_KEY = 'udaan_user_likes_v7';
 
 export const CITY_PRESETS = [
   { id: 'jaipur', name: 'Jaipur (Rajasthan)', lat: 26.9124, lng: 75.7873 },
@@ -121,7 +121,7 @@ export function SistersProvider({ children }) {
     setSisters(prev =>
       prev.map((sister, idx) => {
         const angle = (idx / prev.length) * Math.PI * 2;
-        const dist = 0.7 + (idx * 0.4);
+        const dist = 0.6 + ((idx % 8) * 0.35) + ((idx % 3) * 0.15);
         const latOffset = (dist / 111) * Math.cos(angle);
         const lngOffset = (dist / (111 * Math.cos(lat * (Math.PI / 180)))) * Math.sin(angle);
 
@@ -132,7 +132,7 @@ export function SistersProvider({ children }) {
             lng: lng + lngOffset
           },
           distance: `${dist.toFixed(1)} km away`,
-          distanceKm: dist,
+          distanceKm: Number(dist.toFixed(1)),
           location: `${cityName} Zone`
         };
       })

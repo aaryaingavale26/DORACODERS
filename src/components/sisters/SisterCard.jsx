@@ -14,6 +14,8 @@ export default function SisterCard({ sister }) {
     if (s.category === 'beauty') return `${firstName}'s Beauty Salon`;
     if (s.category === 'yoga') return `${firstName}'s Yoga Center`;
     if (s.category === 'tutoring') return `${firstName}'s Craft Academy`;
+    if (s.category === 'cleaning') return `${firstName}'s Deep Clean & Home Care`;
+    if (s.category === 'eldercare') return `${firstName}'s Care & Companion Services`;
     return `${firstName}'s Shop`;
   };
 
