@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
 
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'shop-detail' | 'dashboard'
   const [activeSisterId, setActiveSisterId] = useState(null);
+  const [dashboardTab, setDashboardTab] = useState('bookings'); // 'bookings' | 'shop' | 'subscription'
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -51,7 +52,10 @@ export function AuthProvider({ children }) {
 
     setCurrentUser(user);
     setCurrentView(role === 'sister' ? 'dashboard' : 'home');
-    setIsOnboardingModalOpen(role === 'buyer'); // Ask buyers if they want to enroll
+    if (role === 'sister') {
+      setDashboardTab('bookings');
+    }
+    setIsOnboardingModalOpen(role === 'buyer');
     return user;
   };
 
@@ -67,7 +71,10 @@ export function AuthProvider({ children }) {
 
     setCurrentUser(user);
     setCurrentView(role === 'sister' ? 'dashboard' : 'home');
-    setIsOnboardingModalOpen(role === 'buyer'); // Ask buyers if they want to enroll
+    if (role === 'sister') {
+      setDashboardTab('bookings');
+    }
+    setIsOnboardingModalOpen(role === 'buyer');
     return user;
   };
 
@@ -75,6 +82,7 @@ export function AuthProvider({ children }) {
     setCurrentUser(null);
     setCurrentView('home');
     setActiveSisterId(null);
+    setDashboardTab('bookings');
     setIsOnboardingModalOpen(false);
     setSearchQuery('');
   };
@@ -87,6 +95,7 @@ export function AuthProvider({ children }) {
       sisterId
     };
     setCurrentUser(updated);
+    setDashboardTab('shop');
     setCurrentView('dashboard');
     setIsOnboardingModalOpen(false);
   };
@@ -110,14 +119,21 @@ export function AuthProvider({ children }) {
     };
     setCurrentUser(updated);
     setCurrentView(isSister ? 'home' : 'dashboard');
+    if (!isSister) {
+      setDashboardTab('bookings');
+    }
   };
 
-  const navigateTo = (view, sisterId = null) => {
+  const navigateTo = (view, sisterId = null, tab = null) => {
     setCurrentView(view);
     if (sisterId) {
       setActiveSisterId(sisterId);
     } else if (view === 'home') {
       setActiveSisterId(null);
+    }
+
+    if (view === 'dashboard' && tab) {
+      setDashboardTab(tab);
     }
   };
 
@@ -129,6 +145,8 @@ export function AuthProvider({ children }) {
       isAuthenticated,
       currentView,
       activeSisterId,
+      dashboardTab,
+      setDashboardTab,
       isOnboardingModalOpen,
       setIsOnboardingModalOpen,
       searchQuery,

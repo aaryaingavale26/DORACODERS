@@ -11,6 +11,7 @@ const LIKES_KEY = 'udaan_user_likes_v6';
 
 export const CITY_PRESETS = [
   { id: 'jaipur', name: 'Jaipur (Rajasthan)', lat: 26.9124, lng: 75.7873 },
+  { id: 'nagpur', name: 'Nagpur (Maharashtra)', lat: 21.1458, lng: 79.0882 },
   { id: 'delhi', name: 'Delhi NCR (South Ex)', lat: 28.5700, lng: 77.2200 },
   { id: 'mumbai', name: 'Mumbai (Bandra/Dadar)', lat: 19.0596, lng: 72.8295 },
   { id: 'bengaluru', name: 'Bengaluru (Indiranagar)', lat: 12.9716, lng: 77.5946 },

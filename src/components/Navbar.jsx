@@ -24,6 +24,7 @@ export default function Navbar() {
     isAuthenticated, 
     logout, 
     currentView, 
+    dashboardTab,
     navigateTo, 
     toggleDemoRole 
   } = useAuth();
@@ -40,7 +41,7 @@ export default function Navbar() {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  if (!isAuthenticated) return null; // Navbar is hidden when not authenticated
+  if (!isAuthenticated) return null;
 
   const isSister = currentUser.role === 'sister';
   const isPro = currentUser.subscription === 'pro';
@@ -128,17 +129,27 @@ export default function Navbar() {
             {/* 2. Enrolled Sister Actions */}
             {isSister && (
               <>
+                {/* My Dashboard Button */}
                 <button
-                  onClick={() => navigateTo('dashboard')}
-                  className="p-2 text-gray-700 hover:text-brand-pink hover:bg-pink-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold"
+                  onClick={() => navigateTo('dashboard', null, 'shop')}
+                  className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold ${
+                    currentView === 'dashboard' && dashboardTab === 'shop'
+                      ? 'text-brand-pink bg-pink-50 ring-1 ring-pink-200'
+                      : 'text-gray-700 hover:text-brand-pink hover:bg-pink-50'
+                  }`}
                 >
                   <LayoutDashboard className="w-5 h-5 text-gray-500" />
                   <span>My Dashboard</span>
                 </button>
 
+                {/* Requests Button (Automatically opens Service Requests tab) */}
                 <button
-                  onClick={() => navigateTo('dashboard')}
-                  className="p-2 text-gray-700 hover:text-brand-pink hover:bg-pink-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold"
+                  onClick={() => navigateTo('dashboard', null, 'bookings')}
+                  className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold ${
+                    currentView === 'dashboard' && dashboardTab === 'bookings'
+                      ? 'text-brand-pink bg-pink-50 ring-1 ring-pink-200'
+                      : 'text-gray-700 hover:text-brand-pink hover:bg-pink-50'
+                  }`}
                 >
                   <CalendarDays className="w-5 h-5 text-gray-500" />
                   <span>Requests</span>
@@ -168,7 +179,7 @@ export default function Navbar() {
               </button>
 
               {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2.5 w-56 bg-white rounded-2xl shadow-xl border border-warm-200 p-2 text-xs font-bold text-gray-700 animate-fade-in">
+                <div className="absolute right-0 mt-2.5 w-56 bg-white rounded-2xl shadow-xl border border-warm-200 p-2 text-xs font-bold text-gray-700 animate-fade-in z-50">
                   <div className="px-3.5 py-2 border-b border-warm-100 text-gray-900 mb-1">
                     <p className="font-extrabold">{currentUser.name}</p>
                     <p className="text-[10px] text-gray-500 font-medium truncate mt-0.5">{currentUser.email}</p>
@@ -236,13 +247,13 @@ export default function Navbar() {
               ) : (
                 <>
                   <button
-                    onClick={() => { setIsMobileMenuOpen(false); navigateTo('dashboard'); }}
+                    onClick={() => { setIsMobileMenuOpen(false); navigateTo('dashboard', null, 'shop'); }}
                     className="w-full text-left px-4 py-2.5 hover:bg-pink-50 rounded-xl"
                   >
                     My Dashboard
                   </button>
                   <button
-                    onClick={() => { setIsMobileMenuOpen(false); navigateTo('dashboard'); }}
+                    onClick={() => { setIsMobileMenuOpen(false); navigateTo('dashboard', null, 'bookings'); }}
                     className="w-full text-left px-4 py-2.5 hover:bg-pink-50 rounded-xl flex items-center justify-between"
                   >
                     <span>Service Requests</span>

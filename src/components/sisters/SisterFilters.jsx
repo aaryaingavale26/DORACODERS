@@ -86,7 +86,47 @@ export default function SisterFilters() {
           </select>
         </div>
 
+        {/* View Mode Switcher (Split, Grid, Map) */}
+        <div className="flex items-center gap-1 bg-warm-100/90 p-1 rounded-xl border border-warm-250">
+          <button
+            onClick={() => setViewMode('split')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'split'
+                ? 'bg-white text-[#d81b60] shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Split View (Map + Cards)"
+          >
+            <Columns className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Split View</span>
+          </button>
 
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'grid'
+                ? 'bg-white text-[#d81b60] shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Grid Cards Only"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Cards Grid</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode('map')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'map'
+                ? 'bg-white text-[#d81b60] shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title="Interactive Map Only"
+          >
+            <MapIcon className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Map View</span>
+          </button>
+        </div>
 
         {/* Sort Options */}
         <div className="flex items-center gap-2 text-gray-700">

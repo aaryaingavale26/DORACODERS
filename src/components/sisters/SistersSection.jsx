@@ -3,6 +3,7 @@ import { useSisters } from '../../context/SistersContext';
 import { useAuth } from '../../context/AuthContext';
 import SisterCard from './SisterCard';
 import SisterFilters from './SisterFilters';
+import SisterMap from './SisterMap';
 import SisterEnrollModal from './SisterEnrollModal';
 import SisterBookingModal from './SisterBookingModal';
 import SisterProfileModal from './SisterProfileModal';
@@ -27,7 +28,7 @@ export default function SistersSection() {
     <section id="sisters" className="py-16 sm:py-20 bg-[#faf7f5] scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Section Header (Matching Screenshot Exactly) */}
+        {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-10">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-serif text-[#231b15] tracking-tight">
             Hire Skilled Sisters Near You
@@ -66,45 +67,75 @@ export default function SistersSection() {
           </div>
         )}
 
-        {/* Filters and View Controls */}
+        {/* Filters and View Controls (Category pills, Distance, Sort & View Mode switcher) */}
         <SisterFilters />
 
-        {/* Sisters Cards Grid */}
-        {filteredSisters.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSisters.map(sister => (
-              <SisterCard key={sister.id} sister={sister} />
-            ))}
+        {/* Dynamic Display based on View Mode */}
+        {viewMode === 'map' && (
+          <div className="mb-10">
+            <SisterMap />
           </div>
-        ) : (
-          /* Empty State */
-          <div className="text-center py-16 bg-white rounded-3xl border border-warm-200 p-8 shadow-sm">
-            <div className="w-16 h-16 bg-pink-50 text-brand-pink rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShieldCheck className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold font-serif text-gray-900">No Skilled Sisters Found</h3>
-            <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
-              No matching verified professionals found for "{searchQuery}". Try selecting a different category or broadening your search.
-            </p>
-            <div className="mt-6 flex items-center justify-center gap-3">
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('all');
-                }}
-                className="px-5 py-2.5 bg-brand-pink text-white rounded-xl text-xs font-semibold hover:bg-brand-darkPink transition-all"
-              >
-                Clear All Filters
-              </button>
-              <button
-                onClick={resetToSeedData}
-                className="px-4 py-2.5 border border-warm-300 text-gray-705 rounded-xl text-xs font-semibold hover:bg-warm-100 flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Reset Sample Sisters
-              </button>
+        )}
+
+        {viewMode === 'split' && (
+          <div className="space-y-8 mb-10">
+            <SisterMap />
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600 mb-4 px-1">
+                Available Sister Shops ({filteredSisters.length})
+              </h3>
+              {filteredSisters.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredSisters.map(sister => (
+                    <SisterCard key={sister.id} sister={sister} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 bg-white rounded-2xl border border-warm-200 p-6">
+                  <p className="text-xs text-gray-500">No sisters found within {maxDistanceKm}km in this category.</p>
+                </div>
+              )}
             </div>
           </div>
+        )}
+
+        {viewMode === 'grid' && (
+          filteredSisters.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredSisters.map(sister => (
+                <SisterCard key={sister.id} sister={sister} />
+              ))}
+            </div>
+          ) : (
+            /* Empty State */
+            <div className="text-center py-16 bg-white rounded-3xl border border-warm-200 p-8 shadow-sm">
+              <div className="w-16 h-16 bg-pink-50 text-brand-pink rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold font-serif text-gray-900">No Skilled Sisters Found</h3>
+              <p className="text-sm text-gray-500 mt-1 max-w-md mx-auto">
+                No matching verified professionals found for "{searchQuery}". Try selecting a different category or broadening your search.
+              </p>
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                  }}
+                  className="px-5 py-2.5 bg-[#d81b60] text-white rounded-xl text-xs font-semibold hover:bg-[#c2185b] transition-all"
+                >
+                  Clear All Filters
+                </button>
+                <button
+                  onClick={resetToSeedData}
+                  className="px-4 py-2.5 border border-warm-300 text-gray-700 rounded-xl text-xs font-semibold hover:bg-warm-100 flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Reset Sample Sisters
+                </button>
+              </div>
+            </div>
+          )
         )}
 
       </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useSisters, CITY_PRESETS } from '../../context/SistersContext';
+import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../lib/utils';
 import { 
   MapPin, 
@@ -14,7 +15,8 @@ import {
   Heart,
   Sliders,
   Sparkles,
-  Layers
+  Layers,
+  ArrowRight
 } from 'lucide-react';
 
 export default function SisterMap() {
@@ -23,6 +25,8 @@ export default function SisterMap() {
   const userMarkerRef = useRef(null);
   const markersRef = useRef([]);
   const circleRef = useRef(null);
+
+  const { navigateTo } = useAuth();
 
   const { 
     filteredSisters, 
@@ -44,7 +48,6 @@ export default function SisterMap() {
 
   const [searchLocationQuery, setSearchLocationQuery] = useState('');
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
 
   // Initialize Map
   useEffect(() => {
@@ -241,7 +244,6 @@ export default function SisterMap() {
           const lat = parseFloat(first.lat);
           const lng = parseFloat(first.lon);
           updateUserPinLocation(lat, lng);
-          setSearchResults([]);
           setSearchLocationQuery('');
         } else {
           alert("Location not found. Please try another area or city name.");
@@ -264,6 +266,83 @@ export default function SisterMap() {
   return (
     <div className="space-y-3">
       
+      {/* Top Location Toolbar: GPS Status, City Selector, Radius Filters & Pincode/Locality Search */}
+      <div className="bg-white p-3.5 rounded-2xl border border-warm-200 shadow-sm flex flex-wrap items-center justify-between gap-3 text-xs">
+        
+        {/* Left: GPS Status, City Selector & Radius Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          
+          {/* GPS Status Indicator */}
+          <button
+            onClick={detectLiveGPSLocation}
+            disabled={isLocatingGPS}
+            className={`px-3 py-2 rounded-xl border font-bold flex items-center gap-1.5 transition-all ${
+              userLocation.isLiveGPS
+                ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
+                : 'bg-warm-100 hover:bg-white text-gray-800 border-warm-300 hover:border-pink-400'
+            }`}
+            title="Auto-detect exact GPS coordinates"
+          >
+            <Navigation className={`w-3.5 h-3.5 ${isLocatingGPS ? 'animate-spin text-pink-600' : userLocation.isLiveGPS ? 'text-white' : 'text-[#d81b60]'}`} />
+            <span>{isLocatingGPS ? 'Detecting GPS...' : userLocation.isLiveGPS ? '📍 GPS Locked' : 'Locate Me (GPS)'}</span>
+          </button>
+
+          {/* City Selector Dropdown */}
+          <div className="flex items-center gap-1.5 bg-warm-50 px-2.5 py-1.5 rounded-xl border border-warm-200">
+            <Globe className="w-3.5 h-3.5 text-[#d81b60]" />
+            <span className="text-gray-500 font-medium">City:</span>
+            <select
+              value={selectedCityId}
+              onChange={(e) => switchCity(e.target.value)}
+              className="bg-transparent font-bold text-gray-900 focus:outline-none cursor-pointer"
+            >
+              {CITY_PRESETS.map(city => (
+                <option key={city.id} value={city.id}>
+                  {city.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Radius Filter Pills */}
+          <div className="flex items-center gap-1 bg-warm-100 p-1 rounded-xl">
+            {[3, 5, 10, 25].map(radius => (
+              <button
+                key={radius}
+                onClick={() => setMaxDistanceKm(radius)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all ${
+                  maxDistanceKm === radius
+                    ? 'bg-[#d81b60] text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {radius}km
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Pincode / Locality Search Box with Jump button */}
+        <form onSubmit={handleLocationSearch} className="relative flex-1 min-w-[220px] max-w-sm">
+          <input
+            type="text"
+            placeholder="Search locality / pincode (e.g. Indiranagar, Nagpur...)"
+            value={searchLocationQuery}
+            onChange={(e) => setSearchLocationQuery(e.target.value)}
+            className="w-full pl-8 pr-16 py-2 text-xs bg-warm-50 border border-warm-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+          />
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <button
+            type="submit"
+            disabled={isSearchingLocation}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-[#d81b60] text-white font-bold rounded-lg text-[10px] hover:bg-[#c2185b] transition-colors"
+          >
+            {isSearchingLocation ? '...' : 'Jump'}
+          </button>
+        </form>
+
+      </div>
+
       {/* Main Map Box */}
       <div className="relative w-full h-[480px] sm:h-[530px] rounded-3xl overflow-hidden shadow-card border border-warm-200 bg-warm-100">
         
@@ -283,7 +362,7 @@ export default function SisterMap() {
           </div>
         </div>
 
-        {/* Active Sister Floating Card */}
+        {/* Active Sister Floating Preview Card with Visit Shop & Hire Her */}
         {activeSisterOnMap && (
           <div className="absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-10 bg-white rounded-2xl p-4 shadow-2xl border border-pink-200 animate-fade-in">
             <div className="flex items-start justify-between gap-3">
@@ -324,15 +403,19 @@ export default function SisterMap() {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Visit Shop Button */}
                 <button
-                  onClick={() => setSelectedSisterForProfile(activeSisterOnMap)}
-                  className="px-3 py-1.5 border border-warm-300 hover:bg-pink-50 text-gray-700 rounded-xl text-xs font-semibold"
+                  onClick={() => navigateTo('shop-detail', activeSisterOnMap.id)}
+                  className="px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-900 border border-pink-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
                 >
-                  Profile
+                  <span>Visit Shop</span>
+                  <ArrowRight className="w-3 h-3 text-[#d81b60]" />
                 </button>
+
+                {/* Hire Her Button */}
                 <button
                   onClick={() => setSelectedSisterForBooking(activeSisterOnMap)}
-                  className="px-4 py-1.5 bg-[#d81b60] hover:bg-[#c2185b] text-white rounded-xl text-xs font-bold shadow-sm"
+                  className="px-4 py-1.5 bg-[#d81b60] hover:bg-[#c2185b] text-white rounded-xl text-xs font-bold shadow-sm active:scale-95 transition-all"
                 >
                   Hire Her
                 </button>
@@ -362,7 +445,7 @@ export default function SisterMap() {
                   onClick={() => handleFocusSister(sister)}
                   className={`flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer shrink-0 transition-all ${
                     isSelected
-                      ? 'bg-pink-50 border-[#d81b60] shadow-sm'
+                      ? 'bg-pink-50 border-[#d81b60] shadow-sm ring-1 ring-[#d81b60]'
                       : 'bg-warm-50 border-warm-200 hover:border-pink-300'
                   }`}
                 >

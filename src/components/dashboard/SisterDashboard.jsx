@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSisters } from '../../context/SistersContext';
 import { useBookings } from '../../context/BookingContext';
@@ -15,12 +15,15 @@ import {
   Edit3, 
   Sliders,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  XCircle,
+  Clock,
+  ArrowRight
 } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 
 export default function SisterDashboard() {
-  const { currentUser, switchPlan, toggleDemoRole } = useAuth();
+  const { currentUser, switchPlan, toggleDemoRole, dashboardTab, setDashboardTab } = useAuth();
   const { 
     sisters, 
     products, 
@@ -33,10 +36,11 @@ export default function SisterDashboard() {
   } = useSisters();
   const { bookings, updateBookingStatus } = useBookings();
 
-  const [activeTab, setActiveTab] = useState('bookings'); // 'bookings' | 'shop' | 'subscription'
+  const activeTab = dashboardTab || 'bookings';
+  const setActiveTab = (tab) => setDashboardTab(tab);
   
   // Find current sister profile
-  const sister = sisters.find(s => s.id === currentUser?.sisterId);
+  const sister = sisters.find(s => s.id === currentUser?.sisterId) || sisters[0];
 
   // Shop Management State
   const [specialty, setSpecialty] = useState(sister?.specialty || '');
@@ -44,6 +48,16 @@ export default function SisterDashboard() {
   const [experience, setExperience] = useState(sister?.experience || '');
   const [location, setLocation] = useState(sister?.location || '');
   const [category, setCategory] = useState(sister?.category || 'tailoring');
+
+  useEffect(() => {
+    if (sister) {
+      setSpecialty(sister.specialty || '');
+      setRate(sister.rate || '');
+      setExperience(sister.experience || '');
+      setLocation(sister.location || '');
+      setCategory(sister.category || 'tailoring');
+    }
+  }, [sister]);
 
   // Add Service Form
   const [svcName, setSvcName] = useState('');
@@ -79,7 +93,7 @@ export default function SisterDashboard() {
   const isPro = currentUser?.subscription === 'pro' || sister.subscription === 'pro';
 
   // Filter bookings for this sister
-  const sisterBookings = bookings.filter(b => b.sisterId === sister.id);
+  const sisterBookings = bookings.filter(b => b.sisterId === sister.id || !b.sisterId);
   const activeBookings = sisterBookings.filter(b => b.status === 'Confirmed' || b.status === 'In Progress');
   
   // Filter products for this sister
@@ -91,7 +105,7 @@ export default function SisterDashboard() {
 
   // Earnings calculations (Only from Completed bookings)
   const completedBookings = sisterBookings.filter(b => b.status === 'Completed');
-  const grossEarnings = completedBookings.reduce((sum, b) => sum + (b.totalAmount || b.amount), 0);
+  const grossEarnings = completedBookings.reduce((sum, b) => sum + (b.totalAmount || b.amount || 0), 0);
   const platformFeeRate = isPro ? 0 : 0.05;
   const platformFee = grossEarnings * platformFeeRate;
   const netEarnings = grossEarnings - platformFee;
@@ -159,7 +173,7 @@ export default function SisterDashboard() {
     if (!aiServiceName.trim()) return;
 
     let range = "₹350 - ₹600";
-    let text = "Based on local market trends for similar services in Jaipur & Delhi NCR, clients are 3x more likely to book services in this range. Pricing at ₹450 is recommended for maximum booking conversions.";
+    let text = "Based on local market trends for similar services in your zone, clients are 3x more likely to book services in this range. Pricing at ₹450 is recommended for maximum booking conversions.";
 
     const query = aiServiceName.toLowerCase();
     if (query.includes('bridal') || query.includes('lehenga') || query.includes('heavy') || query.includes('wedding')) {
@@ -184,7 +198,7 @@ export default function SisterDashboard() {
       
       {/* SaaS Upgrade Promo Banner for Free tier */}
       {!isPro && (
-        <div className="mb-8 bg-gradient-to-r from-amber-500 via-[#d81b60] to-pink-900 text-white rounded-3xl p-5 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4 animate-pulse">
+        <div className="mb-8 bg-gradient-to-r from-amber-500 via-[#d81b60] to-pink-900 text-white rounded-3xl p-5 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-center md:text-left">
             <Zap className="w-8 h-8 text-yellow-300 shrink-0 fill-yellow-300 hidden md:block" />
             <div>
@@ -212,9 +226,7 @@ export default function SisterDashboard() {
           <div>
             <div className="flex items-center gap-2 justify-center sm:justify-start">
               <h1 className="text-xl sm:text-2xl font-bold font-serif text-gray-900">{sister.name}'s Dashboard</h1>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm ${
-                isPro ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-white' : 'bg-warm-100 text-gray-600'
-              }`}>
+              <span className={isPro ? "text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm bg-gradient-to-r from-amber-500 to-yellow-600 text-white" : "text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm bg-warm-100 text-gray-600"}>
                 {isPro ? '★ PRO PARTNER' : 'STARTER TIER'}
               </span>
             </div>
@@ -236,48 +248,50 @@ export default function SisterDashboard() {
         
         {/* Left Side Tab Navigation Column */}
         <div className="lg:col-span-3 space-y-3">
-          <div className="bg-white rounded-2xl p-2 shadow-sm border border-warm-200 flex flex-col gap-1">
+          <div className="bg-white rounded-2xl p-2 shadow-sm border border-warm-200 flex flex-col gap-1.5">
+            
+            {/* Tab 1: Service Requests */}
             <button
               onClick={() => setActiveTab('bookings')}
-              className={`w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-left transition-all flex items-center justify-between ${
-                activeTab === 'bookings'
-                  ? 'bg-pink-50 text-brand-pink border-l-4 border-brand-pink'
-                  : 'text-gray-600 hover:bg-warm-50'
-              }`}
+              className={"w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-left transition-all flex items-center justify-between " + (activeTab === 'bookings' ? 'bg-pink-50 text-[#d81b60] border-l-4 border-[#d81b60] shadow-sm' : 'text-gray-600 hover:bg-warm-50 hover:text-gray-900')}
             >
-              <span>📅 Service Requests</span>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#d81b60]" />
+                <span>Service Requests</span>
+              </div>
               {activeBookings.length > 0 && (
-                <span className="w-5 h-5 bg-[#d81b60] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="w-5 h-5 bg-[#d81b60] text-white text-[10px] font-black rounded-full flex items-center justify-center">
                   {activeBookings.length}
                 </span>
               )}
             </button>
 
+            {/* Tab 2: My Shopfront Manager */}
             <button
               onClick={() => setActiveTab('shop')}
-              className={`w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-left transition-all flex items-center justify-between ${
-                activeTab === 'shop'
-                  ? 'bg-pink-50 text-brand-pink border-l-4 border-brand-pink'
-                  : 'text-gray-600 hover:bg-warm-50'
-              }`}
+              className={"w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-left transition-all flex items-center justify-between " + (activeTab === 'shop' ? 'bg-pink-50 text-[#d81b60] border-l-4 border-[#d81b60] shadow-sm' : 'text-gray-600 hover:bg-warm-50 hover:text-gray-900')}
             >
-              <span>🛍️ My Shopfront Manager</span>
-              <span className="text-[10px] text-gray-400 font-semibold bg-warm-100 px-2 py-0.5 rounded-full">
-                {totalListings} listings
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-[#d81b60]" />
+                <span>My Shopfront Manager</span>
+              </div>
+              <span className="text-[10px] text-gray-500 font-semibold bg-warm-100 px-2 py-0.5 rounded-full">
+                {totalListings}
               </span>
             </button>
 
+            {/* Tab 3: Earnings & Plan Tiers */}
             <button
               onClick={() => setActiveTab('subscription')}
-              className={`w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold text-left transition-all flex items-center justify-between ${
-                activeTab === 'subscription'
-                  ? 'bg-pink-50 text-brand-pink border-l-4 border-brand-pink'
-                  : 'text-gray-600 hover:bg-warm-50'
-              }`}
+              className={"w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-left transition-all flex items-center justify-between " + (activeTab === 'subscription' ? 'bg-pink-50 text-[#d81b60] border-l-4 border-[#d81b60] shadow-sm' : 'text-gray-600 hover:bg-warm-50 hover:text-gray-900')}
             >
-              <span>💎 Earnings & Plan Tiers</span>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#d81b60]" />
+                <span>Earnings & Plan Tiers</span>
+              </div>
               {isPro && <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />}
             </button>
+
           </div>
         </div>
 
@@ -288,10 +302,15 @@ export default function SisterDashboard() {
           {activeTab === 'bookings' && (
             <div className="space-y-6">
               <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-warm-200/80">
-                <h3 className="text-lg font-bold font-serif text-gray-900 mb-6 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-brand-pink" />
-                  Client Doorstep Service Bookings
-                </h3>
+                <div className="flex items-center justify-between mb-6 pb-3 border-b border-warm-150">
+                  <h3 className="text-lg font-bold font-serif text-gray-900 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-[#d81b60]" />
+                    Client Doorstep Service Requests
+                  </h3>
+                  <span className="text-xs text-gray-500">
+                    {sisterBookings.length} Total Bookings ({activeBookings.length} Active)
+                  </span>
+                </div>
 
                 {sisterBookings.length === 0 ? (
                   <div className="text-center py-12 bg-warm-50 rounded-2xl p-6 border border-warm-200">
@@ -309,11 +328,7 @@ export default function SisterDashboard() {
                       return (
                         <div 
                           key={booking.id}
-                          className={`p-5 rounded-2xl border transition-all ${
-                            isCompleted ? 'bg-emerald-50/20 border-emerald-250' : 
-                            isCancelled ? 'bg-gray-50 border-gray-200 opacity-60' : 
-                            'bg-white border-warm-200 hover:border-pink-300'
-                          }`}
+                          className={"p-5 rounded-2xl border transition-all " + (isCompleted ? 'bg-emerald-50/20 border-emerald-300' : isCancelled ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-warm-200 hover:border-pink-300 shadow-sm')}
                         >
                           <div className="flex items-start justify-between gap-4 flex-wrap sm:flex-nowrap mb-3 border-b border-warm-100 pb-3">
                             <div>
@@ -321,11 +336,7 @@ export default function SisterDashboard() {
                                 <span className="font-mono text-xs font-bold text-pink-700 bg-pink-50 px-2 py-0.5 rounded border border-pink-200">
                                   {booking.bookingRef}
                                 </span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                                  isCompleted ? 'bg-emerald-100 text-emerald-800' :
-                                  isCancelled ? 'bg-gray-100 text-gray-600' :
-                                  isInProgress ? 'bg-blue-150 text-blue-800' : 'bg-pink-100 text-pink-800'
-                                }`}>
+                                <span className={"text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider " + (isCompleted ? 'bg-emerald-100 text-emerald-800' : isCancelled ? 'bg-gray-100 text-gray-600' : isInProgress ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800')}>
                                   {booking.status}
                                 </span>
                               </div>
@@ -337,11 +348,11 @@ export default function SisterDashboard() {
                               <span className="text-base font-extrabold text-pink-700 block">
                                 {formatCurrency(booking.totalAmount || booking.amount)}
                               </span>
-                              <span className="text-[10px] text-gray-400">COD (Pay after service)</span>
+                              <span className="text-[10px] text-gray-400">COD (Pay after visit)</span>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 bg-warm-50/70 p-3 rounded-xl mb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 bg-warm-50/80 p-3 rounded-xl mb-4">
                             <div>📅 Date: <strong className="text-gray-850">{booking.date}</strong></div>
                             <div>🕒 Slot: <strong className="text-gray-850">{booking.timeSlot}</strong></div>
                             <div>📞 Phone: <strong className="text-gray-850">{booking.customerPhone}</strong></div>
@@ -353,24 +364,26 @@ export default function SisterDashboard() {
                             <div className="flex items-center justify-end gap-3 pt-1">
                               <button
                                 onClick={() => updateBookingStatus(booking.id, 'Cancelled')}
-                                className="text-xs text-gray-500 hover:text-red-600 font-bold py-1.5 px-3 hover:bg-red-50 rounded-xl"
+                                className="text-xs text-gray-500 hover:text-red-600 font-bold py-2 px-3.5 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-1"
                               >
-                                Decline Visit
+                                <XCircle className="w-3.5 h-3.5" />
+                                <span>Reject / Decline</span>
                               </button>
                               
                               {isConfirm && (
                                 <button
                                   onClick={() => updateBookingStatus(booking.id, 'In Progress')}
-                                  className="bg-brand-pink hover:bg-brand-darkPink text-white text-xs font-bold py-2 px-4 rounded-xl shadow-sm transition-all"
+                                  className="bg-[#d81b60] hover:bg-[#c2185b] text-white text-xs font-bold py-2 px-5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
                                 >
-                                  Accept & Confirm Visit
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>Accept & Schedule</span>
                                 </button>
                               )}
 
                               {isInProgress && (
                                 <button
                                   onClick={() => updateBookingStatus(booking.id, 'Completed')}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-sm transition-all flex items-center gap-1"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
                                 >
                                   <CheckCircle className="w-3.5 h-3.5" />
                                   <span>Mark as Completed</span>
@@ -396,7 +409,7 @@ export default function SisterDashboard() {
               {/* Profile Details Edit Form */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-warm-200/80">
                 <h3 className="text-base font-bold font-serif text-gray-900 mb-4 flex items-center gap-2 border-b border-warm-150 pb-2">
-                  <Edit3 className="w-4.5 h-4.5 text-brand-pink" />
+                  <Edit3 className="w-4.5 h-4.5 text-[#d81b60]" />
                   Edit Shop Profile Details
                 </h3>
 
@@ -462,7 +475,7 @@ export default function SisterDashboard() {
 
                   <button
                     type="submit"
-                    className="bg-brand-pink hover:bg-brand-darkPink text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-all shadow-sm active:scale-95"
+                    className="bg-[#d81b60] hover:bg-[#c2185b] text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-all shadow-sm active:scale-95"
                   >
                     Save Shop Details
                   </button>
@@ -473,11 +486,11 @@ export default function SisterDashboard() {
               <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-warm-200/80">
                 <div className="flex items-center justify-between border-b border-warm-150 pb-2 mb-4">
                   <h3 className="text-base font-bold font-serif text-gray-900 flex items-center gap-2">
-                    <Sliders className="w-4.5 h-4.5 text-brand-pink" />
+                    <Sliders className="w-4.5 h-4.5 text-[#d81b60]" />
                     Manage Offered Service Packages
                   </h3>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${listingLimitReached ? 'bg-red-150 text-red-700' : 'bg-pink-100 text-pink-700'}`}>
-                    Total Listings: {totalListings} {!isPro && '/ 3 Limit'}
+                  <span className={listingLimitReached ? "text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700" : "text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700"}>
+                    Total Listings: {totalListings}{!isPro ? " / 3 Limit" : ""}
                   </span>
                 </div>
 
@@ -545,7 +558,7 @@ export default function SisterDashboard() {
               {/* Products list & Add product */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-warm-200/80">
                 <h3 className="text-base font-bold font-serif text-gray-900 border-b border-warm-150 pb-2 mb-4 flex items-center gap-2">
-                  <ShoppingBag className="w-4.5 h-4.5 text-brand-pink" />
+                  <ShoppingBag className="w-4.5 h-4.5 text-[#d81b60]" />
                   List Handmade Craft Products
                 </h3>
 
@@ -633,7 +646,7 @@ export default function SisterDashboard() {
               {/* Dynamic Income Stats */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-warm-200/80">
                 <h3 className="text-base font-bold font-serif text-gray-900 mb-6 flex items-center gap-2 border-b border-warm-150 pb-2">
-                  <TrendingUp className="w-4.5 h-4.5 text-brand-pink" />
+                  <TrendingUp className="w-4.5 h-4.5 text-[#d81b60]" />
                   My Business Revenue & Payouts
                 </h3>
 
@@ -661,19 +674,17 @@ export default function SisterDashboard() {
                 </p>
               </div>
 
-              {/* SaaS Subscription Modal Tiers (ChatGPT Style Plan Selection) */}
+              {/* SaaS Subscription Modal Tiers */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-warm-200/80">
                 <h3 className="text-base font-bold font-serif text-gray-900 mb-6 flex items-center gap-2 border-b border-warm-150 pb-2">
-                  <Zap className="w-4.5 h-4.5 text-brand-pink" />
+                  <Zap className="w-4.5 h-4.5 text-[#d81b60]" />
                   SaaS Partner Subscription Tiers
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   
                   {/* Plan 1: Free Starter */}
-                  <div className={`p-6 rounded-3xl border-2 flex flex-col justify-between ${
-                    !isPro ? 'border-brand-pink bg-pink-50/10' : 'border-warm-200 bg-white'
-                  }`}>
+                  <div className={"p-6 rounded-3xl border-2 flex flex-col justify-between " + (!isPro ? 'border-brand-pink bg-pink-50/20 shadow-sm' : 'border-warm-200 bg-white')}>
                     <div>
                       <h4 className="text-base font-bold text-gray-900 font-serif">Starter Tier</h4>
                       <p className="text-[11px] text-gray-500 mt-0.5">Perfect for newly enrolled sisters</p>
@@ -683,7 +694,7 @@ export default function SisterDashboard() {
                         <span className="text-xs text-gray-400">/free forever</span>
                       </div>
 
-                      <ul className="space-y-2 text-xs text-gray-655 mb-6">
+                      <ul className="space-y-2 text-xs text-gray-600 mb-6">
                         <li className="flex items-center gap-2">✓ Standard listing on interactive map</li>
                         <li className="flex items-center gap-2">✓ Limit: Up to 3 services/products listings</li>
                         <li className="flex items-center gap-2">✓ 5% commission platform fee</li>
@@ -691,7 +702,7 @@ export default function SisterDashboard() {
                     </div>
 
                     {!isPro ? (
-                      <span className="w-full text-center py-2.5 bg-warm-250 text-gray-600 font-bold rounded-xl text-xs block cursor-default">
+                      <span className="w-full text-center py-2.5 bg-warm-200 text-gray-700 font-bold rounded-xl text-xs block cursor-default">
                         Current Active Plan
                       </span>
                     ) : (
@@ -705,9 +716,7 @@ export default function SisterDashboard() {
                   </div>
 
                   {/* Plan 2: Udaan Pro */}
-                  <div className={`p-6 rounded-3xl border-2 flex flex-col justify-between relative overflow-hidden ${
-                    isPro ? 'border-brand-pink bg-pink-50/10 shadow-lg' : 'border-warm-250 bg-white hover:border-pink-300'
-                  }`}>
+                  <div className={"p-6 rounded-3xl border-2 flex flex-col justify-between relative overflow-hidden " + (isPro ? 'border-brand-pink bg-pink-50/20 shadow-lg' : 'border-warm-200 bg-white hover:border-pink-300')}>
                     {/* Corner Tag */}
                     <div className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
                       POPULAR
@@ -725,12 +734,12 @@ export default function SisterDashboard() {
                         <span className="text-xs text-gray-400">/monthly</span>
                       </div>
 
-                      <ul className="space-y-2 text-xs text-gray-655 mb-6">
+                      <ul className="space-y-2 text-xs text-gray-600 mb-6">
                         <li className="flex items-center gap-2">🚀 <strong>Priority Listing</strong> on Search & Map</li>
                         <li className="flex items-center gap-2">✓ <strong>Unlimited</strong> service & product listings</li>
                         <li className="flex items-center gap-2">✓ <strong>Zero commission</strong> on bookings (100% pay)</li>
-                        <li className="flex items-center gap-2">✓ Direct **WhatsApp chat badge**</li>
-                        <li className="flex items-center gap-2">✓ **AI Pricing Assistant** access</li>
+                        <li className="flex items-center gap-2">✓ Direct <strong>WhatsApp chat badge</strong></li>
+                        <li className="flex items-center gap-2">✓ <strong>AI Pricing Assistant</strong> access</li>
                       </ul>
                     </div>
 
@@ -741,7 +750,7 @@ export default function SisterDashboard() {
                     ) : (
                       <button
                         onClick={() => handleUpgrade('pro')}
-                        className="w-full py-2.5 bg-gradient-to-r from-pink-700 to-[#d81b60] hover:from-pink-850 hover:to-pink-900 text-white font-bold rounded-xl text-xs transition-all active:scale-95 shadow-md shadow-pink-600/25"
+                        className="w-full py-2.5 bg-gradient-to-r from-pink-700 to-[#d81b60] hover:from-pink-800 hover:to-pink-900 text-white font-bold rounded-xl text-xs transition-all active:scale-95 shadow-md shadow-pink-600/25"
                       >
                         Upgrade to Pro
                       </button>
@@ -751,7 +760,7 @@ export default function SisterDashboard() {
                 </div>
               </div>
 
-              {/* AI Pricing Assistant (Unlocked on Pro Plan) */}
+              {/* AI Pricing Assistant */}
               {isPro ? (
                 <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-pink-200">
                   <div className="flex items-center gap-2 mb-1.5 border-b border-pink-100 pb-2">
@@ -787,8 +796,7 @@ export default function SisterDashboard() {
                   )}
                 </div>
               ) : (
-                /* Locked AI Pricing Assistant Promo */
-                <div className="bg-warm-100 rounded-3xl p-6 border border-warm-250 text-center opacity-75">
+                <div className="bg-warm-100 rounded-3xl p-6 border border-warm-200 text-center opacity-75">
                   <Zap className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                   <h4 className="font-bold text-gray-800 font-serif text-sm">Unlock AI Pricing Assistant</h4>
                   <p className="text-[11px] text-gray-500 max-w-sm mx-auto mt-1">
@@ -803,6 +811,7 @@ export default function SisterDashboard() {
         </div>
 
       </div>
+
     </div>
   );
 }
