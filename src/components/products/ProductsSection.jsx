@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
-import { initialProducts } from '../../data/products';
+import { useSisters } from '../../context/SistersContext';
 import { productCategories } from '../../data/categories';
 import ProductCard from './ProductCard';
-import ProductDetailModal from './ProductDetailModal';
-import { Sparkles, Search, ArrowUpDown, Filter, MapPin } from 'lucide-react';
+import { Sparkles, Search, ArrowUpDown, MapPin } from 'lucide-react';
 
 export default function ProductsSection() {
+  const { products } = useSisters();
   const [selectedCat, setSelectedCat] = useState('all');
   const [productSearch, setProductSearch] = useState('');
   const [productSort, setProductSort] = useState('featured');
   const [selectedState, setSelectedState] = useState('all');
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Extract unique states
-  const uniqueStates = ['all', ...new Set(initialProducts.map(p => p.state?.split(',')[1]?.trim() || p.state?.trim()).filter(Boolean))];
+  const uniqueStates = ['all', ...new Set(products.map(p => p.state?.split(',')[1]?.trim() || p.state?.trim()).filter(Boolean))];
 
-  const filteredProducts = initialProducts.filter(prod => {
+  const filteredProducts = products.filter(prod => {
     if (selectedCat !== 'all' && prod.category !== selectedCat) {
       return false;
     }
@@ -25,7 +24,7 @@ export default function ProductsSection() {
     if (productSearch.trim()) {
       const q = productSearch.toLowerCase();
       const matchName = prod.name.toLowerCase().includes(q);
-      const matchArtisan = prod.artisan.toLowerCase().includes(q);
+      const matchArtisan = prod.artisan?.toLowerCase().includes(q);
       const matchState = prod.state?.toLowerCase().includes(q);
       const matchDesc = prod.description.toLowerCase().includes(q);
       if (!matchName && !matchArtisan && !matchState && !matchDesc) {
@@ -49,7 +48,7 @@ export default function ProductsSection() {
         <div className="text-center max-w-3xl mx-auto mb-8">
           <div className="inline-flex items-center gap-1.5 bg-pink-100/80 text-pink-900 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
             <Sparkles className="w-3.5 h-3.5 text-[#d81b60]" />
-            <span>Fair Trade & Direct Artisan Marketplace ({initialProducts.length}+ Authentic Treasures)</span>
+            <span>Fair Trade & Direct Artisan Marketplace ({products.length}+ Authentic Treasures)</span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-serif text-[#231b15] tracking-tight">
             Treasures of Rural India
@@ -64,8 +63,8 @@ export default function ProductsSection() {
           {productCategories.map(cat => {
             const isSelected = selectedCat === cat.id;
             const count = cat.id === 'all' 
-              ? initialProducts.length 
-              : initialProducts.filter(p => p.category === cat.id).length;
+              ? products.length 
+              : products.filter(p => p.category === cat.id).length;
 
             return (
               <button
@@ -136,14 +135,13 @@ export default function ProductsSection() {
 
         </div>
 
-        {/* Products Grid (32+ Items) */}
+        {/* Products Grid */}
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredProducts.map(product => (
               <ProductCard 
                 key={product.id} 
-                product={product} 
-                onSelect={(prod) => setSelectedProduct(prod)}
+                product={product}
               />
             ))}
           </div>
@@ -160,15 +158,6 @@ export default function ProductsSection() {
         )}
 
       </div>
-
-      {/* Product Detail Modal */}
-      {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-        />
-      )}
-
     </section>
   );
 }

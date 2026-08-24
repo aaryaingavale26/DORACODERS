@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { initialSisters, DEFAULT_USER_LOCATION } from '../data/initialSisters';
+import { initialProducts } from '../data/products';
 import confetti from 'canvas-confetti';
 
 const SistersContext = createContext();
 
-const STORAGE_KEY = 'udaan_sisters_v5';
-const LIKES_KEY = 'udaan_user_likes_v5';
+const SISTERS_STORAGE_KEY = 'udaan_sisters_v6';
+const PRODUCTS_STORAGE_KEY = 'udaan_products_v6';
+const LIKES_KEY = 'udaan_user_likes_v6';
 
-// Popular Indian City Presets
 export const CITY_PRESETS = [
   { id: 'jaipur', name: 'Jaipur (Rajasthan)', lat: 26.9124, lng: 75.7873 },
   { id: 'delhi', name: 'Delhi NCR (South Ex)', lat: 28.5700, lng: 77.2200 },
@@ -45,16 +46,34 @@ export function SistersProvider({ children }) {
 
   const [selectedCityId, setSelectedCityId] = useState('jaipur');
 
+  // Sisters state
   const [sisters, setSisters] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(SISTERS_STORAGE_KEY);
       if (saved) {
         return JSON.parse(saved);
       }
     } catch (e) {
-      console.error("Failed to load sisters from localStorage", e);
+      console.error("Failed to load sisters", e);
     }
-    return initialSisters;
+    // Set initial mock sisters to be 'free' by default
+    return initialSisters.map(s => ({
+      ...s,
+      subscription: s.subscription || 'free'
+    }));
+  });
+
+  // Products state
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PRODUCTS_STORAGE_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Failed to load products", e);
+    }
+    return initialProducts;
   });
 
   const [userLikes, setUserLikes] = useState(() => {
@@ -80,6 +99,14 @@ export function SistersProvider({ children }) {
   const [selectedSisterForProfile, setSelectedSisterForProfile] = useState(null);
   const [selectedSisterForChat, setSelectedSisterForChat] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem(SISTERS_STORAGE_KEY, JSON.stringify(sisters));
+  }, [sisters]);
+
+  useEffect(() => {
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+  }, [products]);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -115,7 +142,6 @@ export function SistersProvider({ children }) {
   useEffect(() => {
     let isMounted = true;
 
-    // 1. First try fast IP Geolocation
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
@@ -131,14 +157,13 @@ export function SistersProvider({ children }) {
           });
 
           repositionSistersAroundCoords(data.latitude, data.longitude, detectedCity);
-          showToast(`📍 Live Location Auto-Detected: ${detectedCity} (${data.latitude.toFixed(2)}, ${data.longitude.toFixed(2)})`);
+          showToast(`📍 Live Location Auto-Detected: ${detectedCity}`);
         }
       })
       .catch(err => {
         console.log("IP location fallback failed, using browser geolocation", err);
       });
 
-    // 2. Also attempt high-precision device GPS
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -163,7 +188,6 @@ export function SistersProvider({ children }) {
     };
   }, []);
 
-  // Manual GPS button trigger
   const detectLiveGPSLocation = () => {
     if (!navigator.geolocation) {
       showToast("⚠️ Geolocation is not supported by your browser.");
@@ -196,7 +220,6 @@ export function SistersProvider({ children }) {
     );
   };
 
-  // Switch City Preset
   const switchCity = (cityId) => {
     const city = CITY_PRESETS.find(c => c.id === cityId);
     if (!city) return;
@@ -228,9 +251,10 @@ export function SistersProvider({ children }) {
     const angle = Math.random() * Math.PI * 2;
     const latOffset = (distNum / 111) * Math.cos(angle);
     const lngOffset = (distNum / (111 * Math.cos(userLocation.lat * (Math.PI / 180)))) * Math.sin(angle);
+    const generatedId = `sister-${Date.now()}`;
 
     const newSister = {
-      id: `sister-${Date.now()}`,
+      id: generatedId,
       name: formData.name,
       specialty: formData.specialty,
       category: formData.category || 'tailoring',
@@ -240,6 +264,7 @@ export function SistersProvider({ children }) {
       rateUnit: formData.rateUnit || "/visit",
       likes: 1,
       isVerified: true,
+      subscription: 'free',
       avatar: formData.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80",
       distance: `${distNum.toFixed(1)} km away`,
       distanceKm: distNum,
@@ -272,6 +297,7 @@ export function SistersProvider({ children }) {
 
     showToast(`🎉 Congratulations! ${formData.name} is now enrolled as a verified Skilled Sister.`);
     setIsEnrollModalOpen(false);
+    return generatedId;
   };
 
   const toggleLike = (sisterId) => {
@@ -294,12 +320,95 @@ export function SistersProvider({ children }) {
     );
   };
 
-  const resetToSeedData = () => {
-    setSisters(initialSisters);
-    localStorage.removeItem(STORAGE_KEY);
-    showToast("Reset to initial skilled sisters.");
+  // State Updates from Dashboard
+  const updateSisterShop = (sisterId, fields) => {
+    setSisters(prev =>
+      prev.map(s => {
+        if (s.id === sisterId) {
+          return {
+            ...s,
+            ...fields
+          };
+        }
+        return s;
+      })
+    );
+    showToast("✨ Sister Shop details updated successfully!");
   };
 
+  const addSisterService = (sisterId, service) => {
+    setSisters(prev =>
+      prev.map(s => {
+        if (s.id === sisterId) {
+          const currentServices = s.services || [];
+          return {
+            ...s,
+            services: [...currentServices, { id: `s-${Date.now()}`, ...service }]
+          };
+        }
+        return s;
+      })
+    );
+    showToast("💼 Custom Service package added!");
+  };
+
+  const deleteSisterService = (sisterId, serviceId) => {
+    setSisters(prev =>
+      prev.map(s => {
+        if (s.id === sisterId) {
+          return {
+            ...s,
+            services: (s.services || []).filter(svc => svc.id !== serviceId)
+          };
+        }
+        return s;
+      })
+    );
+    showToast("🗑️ Service package removed.");
+  };
+
+  const addSisterProduct = (sisterId, product) => {
+    const newProduct = {
+      id: `prod-${Date.now()}`,
+      sisterId,
+      rating: 5.0,
+      reviewsCount: 1,
+      inStock: true,
+      ...product
+    };
+    setProducts(prev => [newProduct, ...prev]);
+    showToast("🎨 Handmade craft product listed successfully!");
+  };
+
+  const deleteSisterProduct = (sisterId, productId) => {
+    setProducts(prev => prev.filter(p => p.id !== productId));
+    showToast("🗑️ Product listing removed.");
+  };
+
+  const switchSisterPlan = (sisterId, tier) => {
+    setSisters(prev =>
+      prev.map(s => {
+        if (s.id === sisterId) {
+          return {
+            ...s,
+            subscription: tier
+          };
+        }
+        return s;
+      })
+    );
+    showToast(`🚀 Upgraded to Udaan ${tier === 'pro' ? 'Pro' : 'Starter'} plan!`);
+  };
+
+  const resetToSeedData = () => {
+    setSisters(initialSisters.map(s => ({ ...s, subscription: 'free' })));
+    setProducts(initialProducts);
+    localStorage.removeItem(SISTERS_STORAGE_KEY);
+    localStorage.removeItem(PRODUCTS_STORAGE_KEY);
+    showToast("Reset to initial skilled sisters and products.");
+  };
+
+  // Enhance sister with dynamic distances
   const dynamicSisters = sisters.map(sister => {
     if (sister.coordinates) {
       const realDist = calculateDistanceKm(
@@ -317,6 +426,7 @@ export function SistersProvider({ children }) {
     return sister;
   });
 
+  // Filtered & Sorted Sisters (Prioritize PRO tier!)
   const filteredSisters = dynamicSisters.filter(sister => {
     if (selectedCategory !== 'all' && sister.category !== selectedCategory) {
       return false;
@@ -339,6 +449,12 @@ export function SistersProvider({ children }) {
 
     return true;
   }).sort((a, b) => {
+    // 1. Subscription priority first
+    const aPro = a.subscription === 'pro' ? 1 : 0;
+    const bPro = b.subscription === 'pro' ? 1 : 0;
+    if (bPro !== aPro) return bPro - aPro;
+
+    // 2. Fallback to standard sorting
     if (sortBy === 'distance') return (a.distanceKm || 0) - (b.distanceKm || 0);
     if (sortBy === 'rating') return b.rating - a.rating;
     if (sortBy === 'price-asc') return a.rate - b.rate;
@@ -351,6 +467,7 @@ export function SistersProvider({ children }) {
     <SistersContext.Provider value={{
       sisters: dynamicSisters,
       filteredSisters,
+      products,
       userLocation,
       detectLiveGPSLocation,
       isLocatingGPS,
@@ -381,6 +498,12 @@ export function SistersProvider({ children }) {
       setSelectedSisterForProfile,
       selectedSisterForChat,
       setSelectedSisterForChat,
+      updateSisterShop,
+      addSisterService,
+      deleteSisterService,
+      addSisterProduct,
+      deleteSisterProduct,
+      switchSisterPlan,
       toastMessage,
       showToast
     }}>

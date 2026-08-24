@@ -75,11 +75,18 @@ export function BookingProvider({ children }) {
     );
   };
 
+  const updateBookingStatus = (bookingId, status) => {
+    setBookings(prev =>
+      prev.map(b => (b.id === bookingId ? { ...b, status } : b))
+    );
+  };
+
   return (
     <BookingContext.Provider value={{
       bookings,
       createBooking,
       cancelBooking,
+      updateBookingStatus,
       isMyBookingsOpen,
       setIsMyBookingsOpen
     }}>

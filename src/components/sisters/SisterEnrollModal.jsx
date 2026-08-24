@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useSisters } from '../../context/SistersContext';
+import { useAuth } from '../../context/AuthContext';
 import { 
   X, 
   UserPlus, 
@@ -26,6 +27,7 @@ const avatarPresets = [
 
 export default function SisterEnrollModal() {
   const { isEnrollModalOpen, setIsEnrollModalOpen, enrollSister } = useSisters();
+  const { enrollCurrentAsSister } = useAuth();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -85,11 +87,12 @@ export default function SisterEnrollModal() {
 
     const finalAvatar = formData.customAvatarUrl.trim() || formData.avatar;
 
-    enrollSister({
+    const sisterId = enrollSister({
       ...formData,
       avatar: finalAvatar,
       rate: Number(formData.rate) || 350
     });
+    enrollCurrentAsSister(sisterId);
   };
 
   return (

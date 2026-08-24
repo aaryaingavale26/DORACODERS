@@ -1,14 +1,20 @@
 import React from 'react';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { Star, ShoppingBag, HeartHandshake, MapPin } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 
-export default function ProductCard({ product, onSelect }) {
+export default function ProductCard({ product }) {
   const { addToCart } = useCart();
+  const { navigateTo } = useAuth();
+
+  const handleCardClick = () => {
+    navigateTo('shop-detail', product.sisterId || 'sister-1');
+  };
 
   return (
     <div 
-      onClick={() => onSelect && onSelect(product)}
+      onClick={handleCardClick}
       className="bg-white rounded-2xl overflow-hidden border border-warm-200 shadow-card hover:shadow-elevated transition-all duration-300 flex flex-col justify-between group cursor-pointer"
     >
       {/* Image & Artisan Tag */}
@@ -21,13 +27,13 @@ export default function ProductCard({ product, onSelect }) {
         
         {/* State/Origin Tag */}
         <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-gray-800 shadow-sm flex items-center gap-1 border border-warm-200">
-          <MapPin className="w-3 h-3 text-[#d81b60]" />
+          <MapPin className="w-3.5 h-3.5 text-[#d81b60]" />
           <span className="truncate max-w-[120px]">{product.state || "India"}</span>
         </div>
 
         {/* Rating */}
         <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-white flex items-center gap-1">
-          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
           <span>{Number(product.rating).toFixed(1)}</span>
         </div>
       </div>

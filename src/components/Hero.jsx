@@ -45,45 +45,15 @@ export default function Hero() {
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
             
-            {/* Primary Shop Local Button */}
-            <a
-              href="#products"
-              className="px-7 py-3.5 bg-[#d81b60] hover:bg-[#c2185b] text-white font-bold rounded-2xl shadow-lg shadow-pink-600/30 hover:shadow-xl active:scale-95 transition-all flex items-center gap-2 text-sm sm:text-base"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Shop Local</span>
-            </a>
-
-            {/* Sell Your Craft / Enroll Sister Button */}
-            <button
-              onClick={() => setIsEnrollModalOpen(true)}
-              className="px-6 py-3.5 bg-white/95 hover:bg-white text-gray-900 font-bold rounded-2xl shadow-md border border-warm-300 hover:border-pink-300 active:scale-95 transition-all flex items-center gap-2 text-sm sm:text-base"
-            >
-              <UserPlus className="w-4 h-4 text-[#d81b60]" />
-              <span>Sell Your Craft / Join as Sister</span>
-            </button>
-
-            {/* Quick Link to Map */}
+            {/* Primary Explore Sister Shops Button */}
             <a
               href="#sisters"
-              className="px-5 py-3.5 bg-pink-50/90 hover:bg-pink-100 text-pink-900 font-semibold rounded-2xl text-xs sm:text-sm border border-pink-200/80 flex items-center gap-1.5 transition-colors"
+              className="px-8 py-4 bg-[#d81b60] hover:bg-[#c2185b] text-white font-extrabold rounded-2xl shadow-lg shadow-pink-600/30 hover:shadow-xl active:scale-95 transition-all flex items-center gap-2 text-sm sm:text-base"
             >
-              <MapPin className="w-4 h-4 text-[#d81b60]" />
-              <span>Hire Sisters (3km Radar)</span>
+              <ShoppingBag className="w-4 h-4" />
+              <span>Explore Sister Shops</span>
             </a>
 
-          </div>
-
-          {/* Highlights Tag */}
-          <div className="pt-4 flex flex-wrap items-center gap-6 text-xs font-semibold text-gray-700">
-            <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-warm-200 shadow-sm">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>100% Direct Artisan Income</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-warm-200 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>{sisters.length}+ Verified Sisters Available Near You</span>
-            </div>
           </div>
 
         </div>
