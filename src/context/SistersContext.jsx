@@ -404,7 +404,9 @@ export function SistersProvider({ children }) {
 
   // Filtered & Sorted Sisters (Prioritize PRO tier!)
   const filteredSisters = dynamicSisters.filter(sister => {
-    if (selectedCategory !== 'all' && sister.category !== selectedCategory) {
+    const hasSearch = searchQuery.trim().length > 0;
+
+    if (!hasSearch && selectedCategory !== 'all' && sister.category !== selectedCategory) {
       return false;
     }
 
@@ -412,13 +414,23 @@ export function SistersProvider({ children }) {
       return false;
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    if (hasSearch) {
+      const q = searchQuery.toLowerCase().trim();
       const matchName = sister.name.toLowerCase().includes(q);
       const matchSpecialty = sister.specialty.toLowerCase().includes(q);
+      const matchCategory = sister.category?.toLowerCase().includes(q);
       const matchLocation = sister.location?.toLowerCase().includes(q);
+      const matchExperience = sister.experience?.toLowerCase().includes(q);
       const matchServices = sister.services?.some(s => s.name.toLowerCase().includes(q));
-      if (!matchName && !matchSpecialty && !matchLocation && !matchServices) {
+      const matchBadges = sister.badges?.some(b => b.toLowerCase().includes(q));
+      const matchProducts = products.some(p => p.sisterId === sister.id && (
+        p.name.toLowerCase().includes(q) ||
+        p.description?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q) ||
+        p.materials?.toLowerCase().includes(q)
+      ));
+
+      if (!matchName && !matchSpecialty && !matchCategory && !matchLocation && !matchExperience && !matchServices && !matchBadges && !matchProducts) {
         return false;
       }
     }
