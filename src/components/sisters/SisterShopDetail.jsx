@@ -120,8 +120,8 @@ export default function SisterShopDetail() {
                 </p>
               </div>
 
-              {/* Likes counter & chat buttons */}
-              <div className="grid grid-cols-2 gap-3 mt-6 pt-5 border-t border-warm-100">
+              {/* Likes counter & chat & call buttons */}
+              <div className="grid grid-cols-2 gap-2.5 mt-6 pt-5 border-t border-warm-100">
                 <button
                   onClick={() => toggleLike(sister.id)}
                   className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-all ${
@@ -137,21 +137,33 @@ export default function SisterShopDetail() {
                   className="py-2 px-3 rounded-xl border border-warm-300 hover:border-pink-400 hover:bg-pink-50/50 text-gray-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                 >
                   <MessageSquare className="w-4 h-4 text-brand-pink" />
-                  <span>Inquire / Chat</span>
+                  <span>Inquire</span>
                 </button>
               </div>
 
+              {/* Direct Phone Call Button */}
+              {sister.phone && (
+                <div className="mt-2.5">
+                  <a
+                    href={`tel:${sister.phone.replace(/[^0-9+]/g, '')}`}
+                    className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>📞 Call Sister ({sister.phone})</span>
+                  </a>
+                </div>
+              )}
+
               {/* Direct WhatsApp Callout for Pro sisters */}
               {isPro && (
-                <div className="mt-3.5">
+                <div className="mt-2.5">
                   <a
-                    href={`https://wa.me/${(sister.phone || '919876543210').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(sister.name)},%20I%20saw%2520your%2520shop%2520on%2520Udaan%2520and%2520wanted%2520to%2520connect!`}
+                    href={`https://wa.me/${(sister.phone || '919876543210').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(sister.name)},%20I%20saw%20your%20shop%20on%20Udaan%20and%20wanted%20to%20connect!`}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-sm transition-all hover:shadow active:scale-95"
+                    className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-sm transition-all hover:shadow active:scale-95"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    <span>WhatsApp Me Direct</span>
+                    <span>WhatsApp Direct</span>
                   </a>
                 </div>
               )}

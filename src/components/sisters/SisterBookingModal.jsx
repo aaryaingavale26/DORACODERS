@@ -98,9 +98,10 @@ export default function SisterBookingModal() {
     }
 
     const newBooking = await createBooking({
-      sisterId: sister.id,
+      sisterId: sister.id || sister._id,
       sisterName: sister.name,
       sisterAvatar: sister.avatar,
+      sisterPhone: sister.phone || '+91 98765 43210',
       specialty: sister.specialty,
       serviceName: activeService.name,
       hiringPurpose: `Hired ${sister.name} for ${sister.specialty}: ${activeService.name}`,
@@ -109,10 +110,10 @@ export default function SisterBookingModal() {
       totalAmount,
       date,
       timeSlot,
-      customerName,
+      customerName: customerName.trim(),
       customerEmail: currentUser?.email || 'customer@gmail.com',
-      customerPhone,
-      customerAddress,
+      customerPhone: customerPhone.trim() || currentUser?.phone || '+91 98000 00000',
+      customerAddress: customerAddress.trim(),
       specialNotes: specialNotes || `Doorstep appointment for ${activeService.name}`
     });
 

@@ -27,7 +27,7 @@ const avatarPresets = [
 
 export default function SisterEnrollModal() {
   const { isEnrollModalOpen, setIsEnrollModalOpen, enrollSister } = useSisters();
-  const { enrollCurrentAsSister } = useAuth();
+  const { currentUser, enrollCurrentAsSister } = useAuth();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -85,14 +85,18 @@ export default function SisterEnrollModal() {
       return;
     }
 
-    const finalAvatar = formData.customAvatarUrl.trim() || formData.avatar;
-
-    const sisterId = enrollSister({
+    const finalAvatar = formData.customAvatarUrl.trim() || formData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(formData.name)}`;
+    const fullData = {
       ...formData,
+      name: formData.name.trim(),
+      phone: formData.phone.trim() || currentUser?.phone || '+91 98765 43210',
+      email: currentUser?.email || 'sister@gmail.com',
       avatar: finalAvatar,
-      rate: Number(formData.rate) || 350
-    });
-    enrollCurrentAsSister(sisterId);
+      rate: Number(formData.rate) || 400
+    };
+
+    const sisterId = enrollSister(fullData);
+    enrollCurrentAsSister(sisterId, fullData);
   };
 
   return (

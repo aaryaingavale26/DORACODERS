@@ -103,8 +103,56 @@ export function SistersProvider({ children }) {
     setToastMessage(message);
     setTimeout(() => {
       setToastMessage(null);
-    }, 4500);
+    }, 5500);
   };
+
+  // Live polling for newly created sisters from MongoDB Atlas
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveSisters = async () => {
+      try {
+        const res = await fetch('/api/sisters');
+        if (res.ok) {
+          const liveSisters = await res.json();
+          if (Array.isArray(liveSisters) && liveSisters.length > 0 && isMounted) {
+            setSisters(prev => {
+              const existingIds = new Set(prev.map(s => String(s._id || s.id)));
+              const newArrivals = liveSisters.filter(ls => !existingIds.has(String(ls._id || ls.id)));
+              
+              if (newArrivals.length > 0) {
+                const latest = newArrivals[0];
+                showToast(`🌟 New Sister Partner ${latest.name} (${latest.specialty}) just opened a shop near your area!`);
+              }
+
+              const mergedMap = new Map();
+              prev.forEach(s => mergedMap.set(String(s._id || s.id), s));
+              liveSisters.forEach(ls => {
+                const key = String(ls._id || ls.id);
+                mergedMap.set(key, {
+                  ...ls,
+                  id: key,
+                  rating: ls.rating || 5.0,
+                  reviewsCount: ls.reviewsCount || 1,
+                  distance: ls.distance || '1.2 km away',
+                  distanceKm: ls.distanceKm || 1.2
+                });
+              });
+              return Array.from(mergedMap.values());
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Atlas live sync:", e);
+      }
+    };
+
+    fetchLiveSisters();
+    const interval = setInterval(fetchLiveSisters, 12000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Helper to place sisters around a coordinate clustered within 0.5km - 2.2km
   const repositionSistersAroundCoords = (lat, lng, cityName = "Your Neighborhood") => {

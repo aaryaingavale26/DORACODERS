@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSisters } from '../../context/SistersContext';
 import { useBookings } from '../../context/BookingContext';
+import { useOrders } from '../../context/OrdersContext';
 import { 
   Sparkles, 
   ShieldCheck, 
@@ -18,7 +19,12 @@ import {
   HelpCircle,
   XCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Package,
+  MapPin,
+  PhoneCall,
+  Navigation,
+  Lock
 } from 'lucide-react';
 import { formatCurrency } from '../../lib/utils';
 
@@ -35,12 +41,18 @@ export default function SisterDashboard() {
     switchSisterPlan
   } = useSisters();
   const { bookings, updateBookingStatus } = useBookings();
+  const { orders } = useOrders();
 
   const activeTab = dashboardTab || 'bookings';
   const setActiveTab = (tab) => setDashboardTab(tab);
   
-  // Find current sister profile
-  const sister = currentUser?.sisterProfile || sisters.find(s => s.id === currentUser?.sisterId) || sisters[0];
+  // Find current sister profile with user's real name and avatar
+  const baseSister = currentUser?.sisterProfile || sisters.find(s => s.id === currentUser?.sisterId) || sisters[0];
+  const sister = {
+    ...baseSister,
+    name: currentUser?.name || baseSister?.name || "Skilled Sister",
+    avatar: currentUser?.avatar || baseSister?.avatar
+  };
 
   // Shop Management State
   const [specialty, setSpecialty] = useState(sister?.specialty || '');
@@ -86,13 +98,29 @@ export default function SisterDashboard() {
 
   const isPro = currentUser?.subscription === 'pro' || sister.subscription === 'pro';
 
-  // Filter bookings for this sister
-  const sisterIdToMatch = sister?._id || sister?.id;
-  const sisterBookings = bookings.filter(b => b.sisterId === sisterIdToMatch || b.sisterId === sister?.id || !b.sisterId);
+  // Filter bookings strictly for THIS sister only (no leaks from other sisters)
+  const sisterIdToMatch = String(sister?._id || sister?.id || currentUser?.sisterId || '');
+  const sisterNameToMatch = (sister?.name || currentUser?.name || '').toLowerCase().trim();
+
+  const sisterBookings = bookings.filter(b => {
+    if (!b) return false;
+    const matchId = b.sisterId && (String(b.sisterId) === sisterIdToMatch || String(b.sisterId) === String(sister.id));
+    const matchName = b.sisterName && sisterNameToMatch && b.sisterName.toLowerCase().trim() === sisterNameToMatch;
+    return matchId || matchName;
+  });
   const activeBookings = sisterBookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed' || b.status === 'In Progress');
   
+  // Filter craft shop orders placed for products made by this specific sister/artisan
+  const sisterOrders = (orders || []).filter(order => {
+    return order.items?.some(item => {
+      const matchArtisan = item.artisan && sisterNameToMatch && item.artisan.toLowerCase().includes(sisterNameToMatch);
+      const matchSisterId = item.sisterId && (String(item.sisterId) === sisterIdToMatch || String(item.sisterId) === String(sister.id));
+      return matchArtisan || matchSisterId;
+    });
+  });
+
   // Filter products for this sister
-  const sisterProducts = products.filter(p => p.sisterId === sister.id);
+  const sisterProducts = products.filter(p => p.sisterId === sister.id || (p.artisan && sisterNameToMatch && p.artisan.toLowerCase().includes(sisterNameToMatch)));
 
   // Listing Limit Checks
   const totalListings = (sister.services?.length || 0) + sisterProducts.length;
@@ -338,45 +366,139 @@ export default function SisterDashboard() {
                               <span className="text-base font-extrabold text-pink-700 block">
                                 {formatCurrency(booking.totalAmount || booking.amount)}
                               </span>
-                              <span className="text-[10px] text-gray-400">COD (Pay after visit)</span>
+                              <span className="text-[10px] text-gray-400">COD (Collect after service)</span>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 bg-warm-50/80 p-3 rounded-xl mb-4">
-                            <div>📅 Date: <strong className="text-gray-850">{booking.date}</strong></div>
-                            <div>🕒 Slot: <strong className="text-gray-850">{booking.timeSlot}</strong></div>
-                            <div>📞 Phone: <strong className="text-gray-850">{booking.customerPhone}</strong></div>
-                            <div className="sm:col-span-2">📍 Address: <strong className="text-gray-850">{booking.customerAddress}</strong></div>
-                          </div>
+                          {/* 1. If Job is Pending: Show Privacy Notice */}
+                          {isPending && (
+                            <div className="space-y-3 mb-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 bg-amber-50/50 p-3 rounded-xl border border-amber-200/60">
+                                <div>📅 Requested Date: <strong className="text-gray-850">{booking.date}</strong></div>
+                                <div>🕒 Preferred Slot: <strong className="text-gray-850">{booking.timeSlot}</strong></div>
+                                <div className="sm:col-span-2">📍 Destination Area: <strong className="text-gray-850">{booking.customerAddress.split(',').pop() || 'Local Customer Zone'}</strong></div>
+                              </div>
+
+                              <div className="p-3 bg-amber-100/60 border border-amber-300/80 rounded-xl text-xs text-amber-900 flex items-center gap-2.5">
+                                <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+                                <span><strong>Customer Privacy Protected:</strong> Click <strong>"Accept Request"</strong> below to unlock the client's verified mobile number, exact doorstep address, and 1-click GPS map navigation!</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 2. If Job is Accepted (Confirmed / In Progress / Completed): Show FULL Unlocked Dispatch & Work Location Suite */}
+                          {!isPending && (
+                            <div className="bg-emerald-50/70 border border-emerald-300/80 p-4 rounded-2xl mb-4 space-y-3 shadow-xs">
+                              <div className="flex items-center justify-between border-b border-emerald-200/80 pb-2.5">
+                                <span className="text-xs font-extrabold text-emerald-950 flex items-center gap-1.5">
+                                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                  <span>Job Accepted — Work Location & Client Access Unlocked</span>
+                                </span>
+                                <span className="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded-full">
+                                  Access Granted
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <div>
+                                  <span className="text-[10px] text-gray-500 font-bold uppercase block">Client Name</span>
+                                  <strong className="text-gray-900 text-sm">{booking.customerName}</strong>
+                                </div>
+                                <div>
+                                  <span className="text-[10px] text-gray-500 font-bold uppercase block">Verified Contact Phone</span>
+                                  <strong className="text-gray-900">{booking.customerPhone || 'Contact provided'}</strong>
+                                </div>
+                                <div className="sm:col-span-2 bg-white p-3 rounded-xl border border-emerald-200 shadow-xs">
+                                  <span className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Exact Doorstep Work Address</span>
+                                  <p className="font-semibold text-gray-900 flex items-start gap-2">
+                                    <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                                    <span>{booking.customerAddress}</span>
+                                  </p>
+                                </div>
+                              </div>
+
+                              {booking.specialNotes && (
+                                <div className="text-xs bg-amber-50 p-2.5 rounded-xl border border-amber-200 text-amber-900">
+                                  <strong>📝 Client Instructions:</strong> {booking.specialNotes}
+                                </div>
+                              )}
+
+                              {/* 1-Click Action Buttons: Call, WhatsApp, GPS Navigation */}
+                              <div className="flex flex-wrap gap-2 pt-1 border-t border-emerald-100/80">
+                                {booking.customerPhone && (
+                                  <>
+                                    <a
+                                      href={`tel:${booking.customerPhone.replace(/[^0-9+]/g, '')}`}
+                                      className="py-2 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
+                                    >
+                                      <PhoneCall className="w-3.5 h-3.5" />
+                                      <span>Call Client ({booking.customerPhone})</span>
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${booking.customerPhone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(booking.customerName)},%20I%20have%20accepted%20your%20booking%20for%20${encodeURIComponent(booking.serviceName)}!%20I%20will%20arrive%20at%20${encodeURIComponent(booking.timeSlot)}.`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="py-2 px-3.5 bg-green-700 hover:bg-green-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5" />
+                                      <span>WhatsApp Client</span>
+                                    </a>
+                                  </>
+                                )}
+                                
+                                {booking.customerAddress && (
+                                  <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(booking.customerAddress)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+                                  >
+                                    <Navigation className="w-3.5 h-3.5" />
+                                    <span>Start GPS Directions</span>
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Action Controls */}
                           {(isPending || isConfirm || isInProgress) && (
                             <div className="flex items-center justify-end gap-3 pt-1">
                               <button
                                 onClick={() => updateBookingStatus(booking.id, 'Rejected')}
-                                className="text-xs text-gray-500 hover:text-red-600 font-bold py-2 px-3.5 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-1"
+                                className="text-xs text-gray-500 hover:text-red-600 font-bold py-2 px-3.5 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
                               >
                                 <XCircle className="w-3.5 h-3.5" />
                                 <span>Reject / Decline</span>
                               </button>
                               
-                              {(isPending || isConfirm) && (
+                              {isPending && (
                                 <button
-                                  onClick={() => updateBookingStatus(booking.id, isPending ? 'Confirmed' : 'In Progress')}
-                                  className="bg-[#d81b60] hover:bg-[#c2185b] text-white text-xs font-bold py-2 px-5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                                  onClick={() => updateBookingStatus(booking.id, 'Confirmed')}
+                                  className="bg-[#d81b60] hover:bg-[#c2185b] text-white text-xs font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                                 >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  <span>{isPending ? 'Accept Request' : 'Mark In Progress'}</span>
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>Accept Request & Unlock Location</span>
+                                </button>
+                              )}
+
+                              {isConfirm && (
+                                <button
+                                  onClick={() => updateBookingStatus(booking.id, 'In Progress')}
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                                >
+                                  <Navigation className="w-4 h-4" />
+                                  <span>Start Journey / Mark In Progress</span>
                                 </button>
                               )}
 
                               {isInProgress && (
                                 <button
                                   onClick={() => updateBookingStatus(booking.id, 'Completed')}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                                 >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  <span>Mark as Completed</span>
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>Complete Job & Collect Cash</span>
                                 </button>
                               )}
                             </div>

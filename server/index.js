@@ -201,7 +201,7 @@ app.get('/auth/user', (req, res) => {
 
 // Direct Google / Frontend Auth Sync to MongoDB Atlas
 app.post('/api/auth/google-sync', async (req, res) => {
-  const { name, email, profileImage, role = 'buyer' } = req.body;
+  const { name, email, profileImage, phone, role = 'buyer' } = req.body;
 
   if (!email) {
     return res.status(400).json({ error: "Email is required to sync with MongoDB" });
@@ -213,6 +213,7 @@ app.post('/api/auth/google-sync', async (req, res) => {
       user = await User.create({
         name: name || email.split('@')[0],
         email,
+        phone: phone || '',
         profileImage: profileImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
         role: role || 'buyer'
       });
@@ -220,7 +221,12 @@ app.post('/api/auth/google-sync', async (req, res) => {
     } else {
       user = await User.findByIdAndUpdate(
         user._id, 
-        { name: name || user.name, profileImage: profileImage || user.profileImage, role: role || user.role }, 
+        { 
+          name: name || user.name, 
+          profileImage: profileImage || user.profileImage, 
+          phone: phone || user.phone,
+          role: role || user.role 
+        }, 
         { new: true }
       );
       console.log(`[MongoDB Atlas] User updated: ${user.email}`);
@@ -245,7 +251,7 @@ app.post('/api/auth/google-sync', async (req, res) => {
         sisterProfile = await Sister.create({
           userId: user._id,
           name: user.name,
-          specialty: "Boutique Tailoring",
+          specialty: "Boutique Tailoring & Crafts",
           category: "tailoring",
           rate: 450,
           rateUnit: "/visit",
@@ -254,7 +260,7 @@ app.post('/api/auth/google-sync', async (req, res) => {
           distanceKm: 1.2,
           location: "Urban Enclave Zone",
           experience: "Skilled artisan partner with verified qualifications.",
-          phone: "+91 98765 43210",
+          phone: phone || user.phone || "+91 98765 43210",
           availableDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
           timeSlots: ["Morning (9 AM - 12 PM)", "Afternoon (1 PM - 4 PM)", "Evening (5 PM - 8 PM)"],
           services: [
@@ -263,6 +269,9 @@ app.post('/api/auth/google-sync', async (req, res) => {
           ],
           badges: ["Top Rated", "Skill Certified"]
         });
+      } else if (phone && (!sisterProfile.phone || sisterProfile.phone.includes('43210'))) {
+        sisterProfile.phone = phone;
+        await sisterProfile.save();
       }
     }
 
@@ -273,6 +282,7 @@ app.post('/api/auth/google-sync', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         profileImage: user.profileImage,
         role: user.role,
         sisterProfile
@@ -286,7 +296,7 @@ app.post('/api/auth/google-sync', async (req, res) => {
 
 // Direct Email Register API with Database Cross-Check
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, role = 'buyer' } = req.body;
+  const { name, email, phone, role = 'buyer' } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
 
   try {
@@ -304,6 +314,7 @@ app.post('/api/auth/register', async (req, res) => {
     const user = await User.create({
       name: userName,
       email: email.toLowerCase().trim(),
+      phone: phone || '',
       profileImage: userAvatar,
       role
     });
@@ -322,7 +333,7 @@ app.post('/api/auth/register', async (req, res) => {
         distanceKm: 1.0,
         location: "Local Community Zone",
         experience: "Skilled artisan partner with verified qualifications.",
-        phone: "+91 98765 43210",
+        phone: phone || "+91 98765 43210",
         availableDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
         timeSlots: ["Morning (9 AM - 12 PM)", "Afternoon (1 PM - 4 PM)", "Evening (5 PM - 8 PM)"],
         services: [
@@ -333,7 +344,7 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
-    console.log(`[MongoDB Atlas] New user registered: ${user.email} (${user.role})`);
+    console.log(`[MongoDB Atlas] New user registered: ${user.email} (${user.role}) - Phone: ${user.phone}`);
     res.status(201).json({ success: true, user, sisterProfile });
   } catch (err) {
     console.error("[MongoDB Atlas] Register error:", err);

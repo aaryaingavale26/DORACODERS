@@ -82,7 +82,7 @@ export function AuthProvider({ children }) {
     }
   }, [currentUser]);
 
-  const loginWithGoogle = async (role = 'buyer', customEmail = null, customName = null, customAvatar = null) => {
+  const loginWithGoogle = async (role = 'buyer', customEmail = null, customName = null, customAvatar = null, customPhone = null) => {
     let finalEmail = customEmail?.trim();
     if (!finalEmail) {
       finalEmail = role === 'sister' ? 'sister.partner@gmail.com' : 'buyer.user@gmail.com';
@@ -94,17 +94,41 @@ export function AuthProvider({ children }) {
       finalName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
     }
 
+    const finalPhone = customPhone?.trim() || "+91 98000 00000";
     const finalAvatar = customAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalName)}`;
+    const sisterId = `sister-usr-${Date.now()}`;
 
-    // Google User Profile with user's own email, name, and picture
+    const sisterProfile = role === 'sister' ? {
+      id: sisterId,
+      name: finalName,
+      specialty: "Boutique Tailoring & Crafts",
+      category: "tailoring",
+      rating: 5.0,
+      reviewsCount: 1,
+      rate: 400,
+      rateUnit: "/visit",
+      avatar: finalAvatar,
+      location: "Local Community Zone",
+      experience: "Skilled artisan partner with verified qualifications.",
+      phone: finalPhone,
+      services: [
+        { id: `s-1`, name: "Standard Doorstep Service", price: 400, duration: "60 mins" },
+        { id: `s-2`, name: "Custom Consultation & Fitting", price: 500, duration: "75 mins" }
+      ],
+      badges: ["Skill Certified", "Newly Enrolled"]
+    } : null;
+
+    // Google User Profile with user's own email, name, and real phone
     const googleUser = {
       id: `google-${Date.now()}`,
       name: finalName,
       email: finalEmail,
+      phone: finalPhone,
       role: role,
       avatar: finalAvatar,
       subscription: 'free',
-      sisterId: role === 'sister' ? 'sister-1' : null
+      sisterId: role === 'sister' ? sisterId : null,
+      sisterProfile
     };
 
     // Synchronize user into Monika's MongoDB Atlas database
@@ -115,6 +139,7 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({
           name: googleUser.name,
           email: googleUser.email,
+          phone: googleUser.phone,
           profileImage: googleUser.avatar,
           role: googleUser.role
         })
@@ -155,6 +180,7 @@ export function AuthProvider({ children }) {
         id: data.user?._id || `usr-${Date.now()}`,
         name: data.user?.name || cleanEmail.split('@')[0],
         email: data.user?.email || cleanEmail,
+        phone: data.user?.phone || "+91 98000 00000",
         role: data.user?.role || role,
         avatar: data.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.user?.name || cleanEmail)}`,
         subscription: 'free',
@@ -173,15 +199,16 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (name, email, password, role = 'buyer') => {
+  const register = async (name, email, password, role = 'buyer', phone = '') => {
     const cleanEmail = email.toLowerCase().trim();
     const cleanName = name.trim() || cleanEmail.split('@')[0];
+    const cleanPhone = phone.trim() || "+91 98000 00000";
 
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: cleanName, email: cleanEmail, role })
+        body: JSON.stringify({ name: cleanName, email: cleanEmail, phone: cleanPhone, role })
       });
       const data = await res.json();
 
@@ -193,6 +220,7 @@ export function AuthProvider({ children }) {
         id: data.user?._id || `usr-${Date.now()}`,
         name: data.user?.name || cleanName,
         email: data.user?.email || cleanEmail,
+        phone: cleanPhone,
         role: data.user?.role || role,
         avatar: data.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
         subscription: 'free',

@@ -280,6 +280,14 @@ export default function Navbar() {
             {!isSister && (
               <>
                 <button
+                  onClick={() => setIsEnrollModalOpen(true)}
+                  className="px-3.5 py-2 bg-gradient-to-r from-[#d81b60] to-pink-700 hover:from-pink-700 hover:to-pink-800 text-white rounded-xl shadow-sm text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-pink-200" />
+                  <span>Enroll as Sister</span>
+                </button>
+
+                <button
                   onClick={() => setIsMyOrdersOpen(true)}
                   className="p-2 text-gray-700 hover:text-brand-pink hover:bg-pink-50 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold"
                 >

@@ -14,6 +14,7 @@ const bookingSchema = new mongoose.Schema({
   sisterName: String,
   sisterAvatar: String,
   specialty: String,
+  sisterPhone: String, // Real phone number of hired sister
   
   // What purpose they were hired for / Service details
   serviceName: String,

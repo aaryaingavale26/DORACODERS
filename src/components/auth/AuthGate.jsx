@@ -1,79 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Sparkles, ShieldCheck, Heart, User, Lock, Mail, ArrowRight, X, CheckCircle2 } from 'lucide-react';
-
-function decodeJwtResponse(token) {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
-}
+import { Sparkles, ShieldCheck, Heart, User, Lock, Mail, Phone, ArrowRight, X } from 'lucide-react';
 
 export default function AuthGate() {
   const { loginWithGoogle, login, register } = useAuth();
   const [role, setRole] = useState('buyer'); // 'buyer' | 'sister'
   const [isSigningIn, setIsSigningIn] = useState(false);
   
-  // Google Account Prompt Modal state
+  // Real Google Sign-in Prompt state
   const [isGooglePromptOpen, setIsGooglePromptOpen] = useState(false);
   const [googleEmail, setGoogleEmail] = useState('');
   const [googleName, setGoogleName] = useState('');
+  const [googlePhone, setGooglePhone] = useState('');
 
   // Email / Password Form state
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   // Error banner state
   const [authError, setAuthError] = useState('');
 
-  // Initialize official Google Identity Services if client ID is configured
-  useEffect(() => {
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id',
-          callback: async (response) => {
-            if (response.credential) {
-              const payload = decodeJwtResponse(response.credential);
-              if (payload && payload.email) {
-                setIsSigningIn(true);
-                try {
-                  await loginWithGoogle(role, payload.email, payload.name, payload.picture);
-                } catch (e) {
-                  setAuthError("Google authentication failed.");
-                } finally {
-                  setIsSigningIn(false);
-                }
-              }
-            }
-          }
-        });
-      } catch (e) {}
-    }
-  }, [role]);
-
   const handleOpenGooglePrompt = () => {
     setAuthError('');
-    // If official Google prompt is available with real client ID, try prompt
-    if (window.google?.accounts?.id && import.meta.env.VITE_GOOGLE_CLIENT_ID) {
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          setIsGooglePromptOpen(true);
-        }
-      });
-    } else {
-      setIsGooglePromptOpen(true);
-    }
+    setIsGooglePromptOpen(true);
   };
 
   const handleConfirmGoogleLogin = async (e) => {
@@ -83,7 +34,13 @@ export default function AuthGate() {
     setAuthError('');
     setIsSigningIn(true);
     try {
-      await loginWithGoogle(role, googleEmail.trim(), googleName.trim());
+      await loginWithGoogle(
+        role, 
+        googleEmail.trim(), 
+        googleName.trim() || googleEmail.split('@')[0],
+        null,
+        googlePhone.trim()
+      );
       setIsGooglePromptOpen(false);
     } catch (err) {
       console.error("Google Auth failed", err);
@@ -101,7 +58,7 @@ export default function AuthGate() {
     setIsSigningIn(true);
     try {
       if (isRegisterMode) {
-        await register(name.trim() || email.split('@')[0], email.trim(), password, role);
+        await register(name.trim() || email.split('@')[0], email.trim(), password, role, phone.trim());
       } else {
         await login(email.trim(), password, role);
       }
@@ -168,7 +125,7 @@ export default function AuthGate() {
               Welcome to Udaan
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Select your role and sign in securely to start
+              Sign in with your Google account or email to continue
             </p>
           </div>
 
@@ -214,11 +171,11 @@ export default function AuthGate() {
               </div>
             </div>
 
-            {/* Google Sign In Button */}
+            {/* Single Clean Google Sign-In Button */}
             <button
               type="button"
               onClick={handleOpenGooglePrompt}
-              className="w-full bg-white border-2 border-warm-300 hover:border-pink-400 hover:bg-pink-50/50 text-gray-800 font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-3 transition-all shadow-sm active:scale-[0.98] cursor-pointer group"
+              className="w-full bg-white border-2 border-warm-300 hover:border-[#d81b60] hover:bg-pink-50/50 text-gray-800 font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-3 transition-all shadow-sm active:scale-[0.98] cursor-pointer group"
             >
               <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                 <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.68 1.48 7.58l3.78 2.93C6.18 7.37 8.87 5.04 12 5.04z"/>
@@ -226,7 +183,7 @@ export default function AuthGate() {
                 <path fill="#FBBC05" d="M5.26 10.51c-.24-.73-.38-1.5-.38-2.3 0-.8.14-1.57.38-2.3L1.48 3.51C.53 5.41 0 7.54 0 9.8s.53 4.39 1.48 6.29l3.78-2.93a7.87 7.87 0 010-4.65z"/>
                 <path fill="#34A853" d="M12 18.96c-3.13 0-5.82-2.33-6.74-5.47l-3.78 2.93C3.37 20.32 7.35 23 12 23c3.24 0 6.06-1.07 8.08-2.91l-3.71-2.88c-1.1.74-2.5 1.18-4.37 1.18z"/>
               </svg>
-              <span className="group-hover:text-pink-900">Continue with Google as {role === 'sister' ? 'Sister' : 'Buyer'}</span>
+              <span className="group-hover:text-pink-900">Continue with Google ({role === 'sister' ? 'Sister' : 'Buyer'})</span>
             </button>
 
             <div className="relative flex py-1 items-center">
@@ -238,17 +195,30 @@ export default function AuthGate() {
             {/* Email Form */}
             <form onSubmit={handleEmailAuth} className="space-y-3">
               {isRegisterMode && (
-                <div className="relative">
-                  <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Your Full Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
-                  />
-                </div>
+                <>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Your Full Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="tel"
+                      required
+                      placeholder="Your Real Phone Number (e.g. +91 98765 43210)"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+                    />
+                  </div>
+                </>
               )}
 
               <div className="relative">
@@ -256,7 +226,7 @@ export default function AuthGate() {
                 <input
                   type="email"
                   required
-                  placeholder="Your Email (e.g. monika@gmail.com)"
+                  placeholder="Your Email (e.g. yourname@gmail.com)"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
@@ -333,7 +303,7 @@ export default function AuthGate() {
             <form onSubmit={handleConfirmGoogleLogin} className="space-y-3 pt-2">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-1">
-                  Your Full Name
+                  Your Full Name *
                 </label>
                 <input
                   type="text"
@@ -347,14 +317,28 @@ export default function AuthGate() {
 
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-1">
-                  Your Google / Gmail Address *
+                  Your Real Gmail / Google Address *
                 </label>
                 <input
                   type="email"
                   required
-                  placeholder="your.email@gmail.com"
+                  placeholder="your.real.email@gmail.com"
                   value={googleEmail}
                   onChange={(e) => setGoogleEmail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#d81b60]/30 focus:border-[#d81b60]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 mb-1">
+                  Your Real Contact Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="Enter 10-digit mobile (e.g. +91 98765 43210)"
+                  value={googlePhone}
+                  onChange={(e) => setGooglePhone(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#d81b60]/30 focus:border-[#d81b60]"
                 />
               </div>
@@ -362,14 +346,14 @@ export default function AuthGate() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isSigningIn || !googleEmail.trim()}
-                  className="w-full bg-[#1a73e8] hover:bg-[#1558b0] text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+                  disabled={isSigningIn || !googleEmail.trim() || !googlePhone.trim()}
+                  className="w-full bg-[#1a73e8] hover:bg-[#1558b0] text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isSigningIn ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white" />
                   ) : (
                     <>
-                      <span>Continue to Udaan</span>
+                      <span>Continue with this Google Account</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </>
                   )}
@@ -377,7 +361,7 @@ export default function AuthGate() {
               </div>
 
               <p className="text-[10px] text-gray-400 text-center pt-1 leading-relaxed">
-                Your profile will be synchronized into the MongoDB Atlas <code className="text-gray-600 font-mono">doracoders</code> cluster.
+                Your real Google details & contact number will be recorded directly into MongoDB Atlas under <code className="text-gray-600 font-mono">doracoders</code>.
               </p>
             </form>
 
