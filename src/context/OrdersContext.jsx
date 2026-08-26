@@ -96,6 +96,22 @@ export function OrdersProvider({ children }) {
 
     setOrders(prev => [newOrder, ...prev]);
 
+    // Persist Craft Order in MongoDB Atlas
+    try {
+      fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOrder)
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.bookingRef) {
+          console.log("[MongoDB Atlas] Product order saved in database:", res);
+        }
+      })
+      .catch(e => console.warn("MongoDB order sync notification:", e));
+    } catch (err) {}
+
     try {
       confetti({
         particleCount: 120,

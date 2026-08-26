@@ -103,15 +103,17 @@ export default function SisterBookingModal() {
       sisterAvatar: sister.avatar,
       specialty: sister.specialty,
       serviceName: activeService.name,
+      hiringPurpose: `Hired ${sister.name} for ${sister.specialty}: ${activeService.name}`,
       amount: servicePrice,
       visitFee,
       totalAmount,
       date,
       timeSlot,
       customerName,
+      customerEmail: currentUser?.email || 'customer@gmail.com',
       customerPhone,
       customerAddress,
-      specialNotes
+      specialNotes: specialNotes || `Doorstep appointment for ${activeService.name}`
     });
 
     setConfirmedBooking(newBooking);

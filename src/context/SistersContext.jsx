@@ -263,6 +263,37 @@ export function SistersProvider({ children }) {
 
     setSisters(prev => [newSister, ...prev]);
 
+    // Persist Sister Profile in MongoDB Atlas
+    try {
+      fetch('/api/sisters/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newSister.name,
+          specialty: newSister.specialty,
+          category: newSister.category,
+          rate: newSister.rate,
+          rateUnit: newSister.rateUnit,
+          avatar: newSister.avatar,
+          distance: newSister.distance,
+          distanceKm: newSister.distanceKm,
+          location: newSister.location,
+          experience: newSister.experience,
+          phone: newSister.phone,
+          availableDays: newSister.availableDays,
+          timeSlots: newSister.timeSlots,
+          services: newSister.services
+        })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.sister) {
+          console.log("[MongoDB Atlas] Sister successfully enrolled in database:", res.sister);
+        }
+      })
+      .catch(e => console.warn("MongoDB sister sync notification:", e));
+    } catch (err) {}
+
     try {
       confetti({
         particleCount: 120,

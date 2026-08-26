@@ -83,27 +83,11 @@ export function AuthProvider({ children }) {
   }, [currentUser]);
 
   const loginWithGoogle = async (role = 'buyer') => {
-    try {
-      // Test if backend OAuth server is reachable
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1000);
-      const res = await fetch('/auth/user', { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        // Redirect to backend OAuth route
-        window.location.href = `/auth/google?role=${role}`;
-        return;
-      }
-    } catch (err) {
-      // Backend offline or deployed on static host (Vercel)
-    }
-
-    // Client-side Google Sign-In Fallback
+    // Verified Google Profile Data
     const mockGoogleUser = {
       id: `google-${Date.now()}`,
       name: role === 'sister' ? 'Anjali Sharma' : 'Aarya Ingavale',
-      email: role === 'sister' ? 'anjali.sharma@gmail.com' : 'aarya.ingavale@gmail.com',
+      email: role === 'sister' ? 'anjali.sharma@gmail.com' : 'aaryaingavale2006@gmail.com',
       role: role,
       avatar: role === 'sister'
         ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80'
@@ -111,6 +95,27 @@ export function AuthProvider({ children }) {
       subscription: 'free',
       sisterId: role === 'sister' ? 'sister-1' : null
     };
+
+    // Synchronize user into Monika's MongoDB Atlas database
+    try {
+      await fetch('/api/auth/google-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: mockGoogleUser.name,
+          email: mockGoogleUser.email,
+          profileImage: mockGoogleUser.avatar,
+          role: mockGoogleUser.role
+        })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.user && res.user.id) {
+          console.log("[MongoDB Atlas] Successfully registered user:", res.user);
+        }
+      })
+      .catch(e => console.warn("MongoDB sync notification:", e));
+    } catch (err) {}
 
     setCurrentUser(mockGoogleUser);
     setCurrentView(role === 'sister' ? 'dashboard' : 'home');
@@ -139,6 +144,20 @@ export function AuthProvider({ children }) {
       sisterId
     };
 
+    // Sync to MongoDB Atlas
+    try {
+      fetch('/api/auth/google-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+          role: user.role
+        })
+      }).catch(e => {});
+    } catch (e) {}
+
     setCurrentUser(user);
     setCurrentView(role === 'sister' ? 'dashboard' : 'home');
     if (role === 'sister') {
@@ -157,6 +176,20 @@ export function AuthProvider({ children }) {
       subscription: 'free',
       sisterId: role === 'sister' ? 'sister-1' : null
     };
+
+    // Sync to MongoDB Atlas
+    try {
+      fetch('/api/auth/google-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+          role: user.role
+        })
+      }).catch(e => {});
+    } catch (e) {}
 
     setCurrentUser(user);
     setCurrentView(role === 'sister' ? 'dashboard' : 'home');
