@@ -82,10 +82,10 @@ export function AuthProvider({ children }) {
     }
   }, [currentUser]);
 
-  const loginWithGoogle = async (role = 'buyer', customEmail = null, customName = null) => {
+  const loginWithGoogle = async (role = 'buyer', customEmail = null, customName = null, customAvatar = null) => {
     let finalEmail = customEmail?.trim();
     if (!finalEmail) {
-      finalEmail = role === 'sister' ? 'anjali.sharma@gmail.com' : 'user@gmail.com';
+      finalEmail = role === 'sister' ? 'sister.partner@gmail.com' : 'buyer.user@gmail.com';
     }
     
     let finalName = customName?.trim();
@@ -94,13 +94,15 @@ export function AuthProvider({ children }) {
       finalName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
     }
 
-    // Google User Profile with user's own email and name
+    const finalAvatar = customAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalName)}`;
+
+    // Google User Profile with user's own email, name, and picture
     const googleUser = {
       id: `google-${Date.now()}`,
       name: finalName,
       email: finalEmail,
       role: role,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalName)}`,
+      avatar: finalAvatar,
       subscription: 'free',
       sisterId: role === 'sister' ? 'sister-1' : null
     };

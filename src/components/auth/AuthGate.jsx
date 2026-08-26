@@ -1,6 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Sparkles, ShieldCheck, Heart, User, Lock, Mail, ArrowRight, X, CheckCircle2 } from 'lucide-react';
+
+function decodeJwtResponse(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
 
 export default function AuthGate() {
   const { loginWithGoogle, login, register } = useAuth();
@@ -16,12 +32,48 @@ export default function AuthGate() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   // Error banner state
   const [authError, setAuthError] = useState('');
 
+  // Initialize official Google Identity Services if client ID is configured
+  useEffect(() => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id',
+          callback: async (response) => {
+            if (response.credential) {
+              const payload = decodeJwtResponse(response.credential);
+              if (payload && payload.email) {
+                setIsSigningIn(true);
+                try {
+                  await loginWithGoogle(role, payload.email, payload.name, payload.picture);
+                } catch (e) {
+                  setAuthError("Google authentication failed.");
+                } finally {
+                  setIsSigningIn(false);
+                }
+              }
+            }
+          }
+        });
+      } catch (e) {}
+    }
+  }, [role]);
+
   const handleOpenGooglePrompt = () => {
     setAuthError('');
-    setIsGooglePromptOpen(true);
+    // If official Google prompt is available with real client ID, try prompt
+    if (window.google?.accounts?.id && import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          setIsGooglePromptOpen(true);
+        }
+      });
+    } else {
+      setIsGooglePromptOpen(true);
+    }
   };
 
   const handleConfirmGoogleLogin = async (e) => {
