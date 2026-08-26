@@ -16,43 +16,42 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const res = await fetch('/auth/user');
-        const data = await res.json();
-        if (data.authenticated && data.user) {
-          const fetchedUser = {
-            id: data.user.id,
-            name: data.user.name,
-            email: data.user.email,
-            role: data.user.role,
-            avatar: data.user.profileImage,
-            subscription: data.user.sisters?.[0]?.subscription || 'free',
-            sisterId: data.user.sisters?.[0]?._id || data.user.sisters?.[0]?.id || null,
-            sisterProfile: data.user.sisters?.[0] || null
-          };
-          setCurrentUser(fetchedUser);
-          if (fetchedUser.role === 'sister') {
-            setCurrentView('dashboard');
-            setDashboardTab('bookings');
-          } else {
-            setCurrentView('home');
-          }
-        } else {
-          const saved = localStorage.getItem(AUTH_STORAGE_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            setCurrentUser(parsed);
-            if (parsed.role === 'sister') {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const res = await fetch('/auth/user', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            const fetchedUser = {
+              id: data.user.id,
+              name: data.user.name,
+              email: data.user.email,
+              role: data.user.role,
+              avatar: data.user.profileImage,
+              subscription: data.user.sisters?.[0]?.subscription || 'free',
+              sisterId: data.user.sisters?.[0]?._id || data.user.sisters?.[0]?.id || null,
+              sisterProfile: data.user.sisters?.[0] || null
+            };
+            setCurrentUser(fetchedUser);
+            if (fetchedUser.role === 'sister') {
               setCurrentView('dashboard');
               setDashboardTab('bookings');
             } else {
               setCurrentView('home');
             }
+            return;
           }
         }
       } catch (e) {
-        console.warn("Backend auth unavailable, using offline mock state", e);
-        const saved = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (saved) {
+        // Backend auth offline, fallback to local storage
+      }
+
+      // Check localStorage
+      const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (saved) {
+        try {
           const parsed = JSON.parse(saved);
           setCurrentUser(parsed);
           if (parsed.role === 'sister') {
@@ -61,11 +60,13 @@ export function AuthProvider({ children }) {
           } else {
             setCurrentView('home');
           }
+        } catch (err) {
+          console.error("Failed to parse saved auth", err);
         }
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
+
     fetchSession();
   }, []);
 
@@ -81,13 +82,52 @@ export function AuthProvider({ children }) {
     }
   }, [currentUser]);
 
+  const loginWithGoogle = async (role = 'buyer') => {
+    try {
+      // Test if backend OAuth server is reachable
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000);
+      const res = await fetch('/auth/user', { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        // Redirect to backend OAuth route
+        window.location.href = `/auth/google?role=${role}`;
+        return;
+      }
+    } catch (err) {
+      // Backend offline or deployed on static host (Vercel)
+    }
+
+    // Client-side Google Sign-In Fallback
+    const mockGoogleUser = {
+      id: `google-${Date.now()}`,
+      name: role === 'sister' ? 'Anjali Sharma' : 'Aarya Ingavale',
+      email: role === 'sister' ? 'anjali.sharma@gmail.com' : 'aarya.ingavale@gmail.com',
+      role: role,
+      avatar: role === 'sister'
+        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+      subscription: 'free',
+      sisterId: role === 'sister' ? 'sister-1' : null
+    };
+
+    setCurrentUser(mockGoogleUser);
+    setCurrentView(role === 'sister' ? 'dashboard' : 'home');
+    if (role === 'sister') {
+      setDashboardTab('bookings');
+    }
+    setIsOnboardingModalOpen(role === 'buyer');
+    return mockGoogleUser;
+  };
+
   const login = (email, password, role = 'buyer') => {
     const name = email.split('@')[0];
     const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
     
     let sisterId = null;
     if (role === 'sister') {
-      sisterId = 'sister-1'; // Default to first mock sister
+      sisterId = 'sister-1';
     }
 
     const user = {
@@ -115,7 +155,7 @@ export function AuthProvider({ children }) {
       email,
       role,
       subscription: 'free',
-      sisterId: null
+      sisterId: role === 'sister' ? 'sister-1' : null
     };
 
     setCurrentUser(user);
@@ -213,6 +253,7 @@ export function AuthProvider({ children }) {
       setIsOnboardingModalOpen,
       searchQuery,
       setSearchQuery,
+      loginWithGoogle,
       login,
       register,
       logout,

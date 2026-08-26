@@ -1,10 +1,40 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Sparkles, ShieldCheck, Heart, User, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Sparkles, ShieldCheck, Heart, User, Lock, Mail, ArrowRight, Check } from 'lucide-react';
 
 export default function AuthGate() {
-  const { login, register } = useAuth();
+  const { loginWithGoogle, login, register } = useAuth();
   const [role, setRole] = useState('buyer'); // 'buyer' | 'sister'
+  const [authMode, setAuthMode] = useState('google'); // 'google' | 'email'
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
+  // Email state
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleGoogleAuth = async () => {
+    setIsSigningIn(true);
+    try {
+      await loginWithGoogle(role);
+    } catch (e) {
+      console.error("Google Auth failed", e);
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const handleEmailAuth = (e) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) return;
+
+    if (isRegisterMode) {
+      register(name.trim() || email.split('@')[0], email.trim(), password, role);
+    } else {
+      login(email.trim(), password, role);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#faf7f5] flex items-center justify-center p-4">
@@ -61,11 +91,12 @@ export default function AuthGate() {
               Welcome to Udaan
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Select your role and sign in securely with Google
+              Select your role and sign in securely to start
             </p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
+            
             {/* Role Selection */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-2">Account Role</label>
@@ -75,7 +106,7 @@ export default function AuthGate() {
                   onClick={() => setRole('buyer')}
                   className={`py-3 px-3 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1.5 ${
                     role === 'buyer'
-                      ? 'bg-pink-50 border-brand-pink text-brand-pink shadow-sm'
+                      ? 'bg-pink-50 border-[#d81b60] text-[#d81b60] shadow-sm ring-1 ring-[#d81b60]'
                       : 'bg-white border-warm-300 text-gray-600 hover:bg-warm-50'
                   }`}
                 >
@@ -87,7 +118,7 @@ export default function AuthGate() {
                   onClick={() => setRole('sister')}
                   className={`py-3 px-3 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1.5 ${
                     role === 'sister'
-                      ? 'bg-pink-50 border-brand-pink text-brand-pink shadow-sm'
+                      ? 'bg-pink-50 border-[#d81b60] text-[#d81b60] shadow-sm ring-1 ring-[#d81b60]'
                       : 'bg-white border-warm-300 text-gray-600 hover:bg-warm-50'
                   }`}
                 >
@@ -100,17 +131,88 @@ export default function AuthGate() {
             {/* Google Sign In Button */}
             <button
               type="button"
-              onClick={() => window.location.href = `/auth/google?role=${role}`}
-              className="w-full bg-white border border-warm-300 hover:border-pink-300 hover:bg-pink-50 text-gray-700 font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-3 transition-all shadow-sm active:scale-[0.98]"
+              onClick={handleGoogleAuth}
+              disabled={isSigningIn}
+              className="w-full bg-white border-2 border-warm-300 hover:border-pink-400 hover:bg-pink-50/50 text-gray-800 font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-3 transition-all shadow-sm active:scale-[0.98] cursor-pointer"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.68 1.48 7.58l3.78 2.93C6.18 7.37 8.87 5.04 12 5.04z"/>
-                <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.71 2.88c2.17-2 3.42-4.94 3.42-8.61z"/>
-                <path fill="#FBBC05" d="M5.26 10.51c-.24-.73-.38-1.5-.38-2.3 0-.8.14-1.57.38-2.3L1.48 3.51C.53 5.41 0 7.54 0 9.8s.53 4.39 1.48 6.29l3.78-2.93a7.87 7.87 0 010-4.65z"/>
-                <path fill="#34A853" d="M12 18.96c-3.13 0-5.82-2.33-6.74-5.47l-3.78 2.93C3.37 20.32 7.35 23 12 23c3.24 0 6.06-1.07 8.08-2.91l-3.71-2.88c-1.1.74-2.5 1.18-4.37 1.18z"/>
-              </svg>
-              <span>Sign in with Google</span>
+              {isSigningIn ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-brand-pink" />
+              ) : (
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.68 1.48 7.58l3.78 2.93C6.18 7.37 8.87 5.04 12 5.04z"/>
+                  <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.71 2.88c2.17-2 3.42-4.94 3.42-8.61z"/>
+                  <path fill="#FBBC05" d="M5.26 10.51c-.24-.73-.38-1.5-.38-2.3 0-.8.14-1.57.38-2.3L1.48 3.51C.53 5.41 0 7.54 0 9.8s.53 4.39 1.48 6.29l3.78-2.93a7.87 7.87 0 010-4.65z"/>
+                  <path fill="#34A853" d="M12 18.96c-3.13 0-5.82-2.33-6.74-5.47l-3.78 2.93C3.37 20.32 7.35 23 12 23c3.24 0 6.06-1.07 8.08-2.91l-3.71-2.88c-1.1.74-2.5 1.18-4.37 1.18z"/>
+                </svg>
+              )}
+              <span>{isSigningIn ? 'Signing in...' : `Continue with Google as ${role === 'sister' ? 'Sister' : 'Buyer'}`}</span>
             </button>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-warm-200"></div>
+              <span className="flex-shrink mx-3 text-[10px] text-gray-400 font-bold uppercase tracking-wider">or email access</span>
+              <div className="flex-grow border-t border-warm-200"></div>
+            </div>
+
+            {/* Alternative Email Login / Register Form */}
+            <form onSubmit={handleEmailAuth} className="space-y-3">
+              {isRegisterMode && (
+                <div className="relative">
+                  <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Full Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+                  />
+                </div>
+              )}
+
+              <div className="relative">
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  placeholder="Email Address (e.g. aarya@gmail.com)"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+                />
+              </div>
+
+              <div className="relative">
+                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-[#d81b60] hover:bg-[#c2185b] text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-1.5"
+              >
+                <span>{isRegisterMode ? 'Create Account' : 'Sign In with Email'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </form>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setIsRegisterMode(!isRegisterMode)}
+                className="text-[11px] text-pink-700 hover:text-pink-900 font-bold"
+              >
+                {isRegisterMode ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+              </button>
+            </div>
+
           </div>
 
         </div>
@@ -118,4 +220,3 @@ export default function AuthGate() {
     </div>
   );
 }
-
