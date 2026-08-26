@@ -11,8 +11,8 @@ import ImpactSection from './components/impact/ImpactSection';
 import Footer from './components/Footer';
 import CartDrawer from './components/products/CartDrawer';
 import MyBookingsModal from './components/bookings/MyBookingsModal';
+import SisterBookingModal from './components/sisters/SisterBookingModal';
 import OrderTrackingModal from './components/orders/OrderTrackingModal';
-
 import AuthGate from './components/auth/AuthGate';
 import SisterDashboard from './components/dashboard/SisterDashboard';
 import SisterShopDetail from './components/sisters/SisterShopDetail';
@@ -50,6 +50,7 @@ function AppContent() {
       <CartDrawer />
       <MyBookingsModal />
       <OrderTrackingModal />
+      <SisterBookingModal />
 
       {/* Onboarding Modal step */}
       {isOnboardingModalOpen && (
@@ -90,16 +91,16 @@ function AppContent() {
 
 export default function App() {
   return (
-    <SistersProvider>
-      <BookingProvider>
-        <CartProvider>
-          <OrdersProvider>
-            <AuthProvider>
+    <AuthProvider>
+      <SistersProvider>
+        <BookingProvider>
+          <CartProvider>
+            <OrdersProvider>
               <AppContent />
-            </AuthProvider>
-          </OrdersProvider>
-        </CartProvider>
-      </BookingProvider>
-    </SistersProvider>
+            </OrdersProvider>
+          </CartProvider>
+        </BookingProvider>
+      </SistersProvider>
+    </AuthProvider>
   );
 }

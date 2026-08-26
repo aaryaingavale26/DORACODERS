@@ -5,7 +5,6 @@ import SisterCard from './SisterCard';
 import SisterFilters from './SisterFilters';
 import SisterMap from './SisterMap';
 import SisterEnrollModal from './SisterEnrollModal';
-import SisterBookingModal from './SisterBookingModal';
 import SisterProfileModal from './SisterProfileModal';
 import SisterChatModal from './SisterChatModal';
 import { UserPlus, Sparkles, ShieldCheck, RefreshCw, MapPin } from 'lucide-react';
@@ -142,7 +141,6 @@ export default function SistersSection() {
 
       {/* Dynamic Modals */}
       <SisterEnrollModal />
-      <SisterBookingModal />
       <SisterProfileModal />
       <SisterChatModal />
 

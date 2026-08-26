@@ -194,6 +194,32 @@ export default function AuthGate() {
             </button>
           </form>
 
+          {/* Divider */}
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-warm-200"></div>
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase">
+              <span className="bg-white px-3 text-gray-400 font-bold tracking-wider">Or connect via</span>
+            </div>
+          </div>
+
+          {/* Google Sign In Button */}
+          <button
+            type="button"
+            onClick={() => window.location.href = '/auth/google'}
+            className="w-full border border-warm-300 hover:border-pink-300 hover:bg-pink-50/30 text-gray-700 font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2.5 transition-all shadow-sm active:scale-[0.98]"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.68 1.48 7.58l3.78 2.93C6.18 7.37 8.87 5.04 12 5.04z"/>
+              <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.71 2.88c2.17-2 3.42-4.94 3.42-8.61z"/>
+              <path fill="#FBBC05" d="M5.26 10.51c-.24-.73-.38-1.5-.38-2.3 0-.8.14-1.57.38-2.3L1.48 3.51C.53 5.41 0 7.54 0 9.8s.53 4.39 1.48 6.29l3.78-2.93a7.87 7.87 0 010-4.65z"/>
+              <path fill="#34A853" d="M12 18.96c-3.13 0-5.82-2.33-6.74-5.47l-3.78 2.93C3.37 20.32 7.35 23 12 23c3.24 0 6.06-1.07 8.08-2.91l-3.71-2.88c-1.1.74-2.5 1.18-4.37 1.18z"/>
+            </svg>
+            <span>Sign in with Google</span>
+          </button>
+
+
           {/* Toggle Login/Register */}
           <div className="text-center mt-6 text-xs text-gray-500">
             <span>{isLogin ? "Don't have an account?" : "Already have an account?"} </span>

@@ -356,7 +356,11 @@ export default function Navbar() {
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 className="w-10 h-10 rounded-full overflow-hidden border border-warm-300 ring-2 ring-transparent hover:ring-pink-400 transition-all flex items-center justify-center bg-pink-100 text-pink-700 font-extrabold shadow-sm"
               >
-                {currentUser.name.charAt(0)}
+                {currentUser.avatar ? (
+                  <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                ) : (
+                  currentUser.name.charAt(0)
+                )}
               </button>
 
               {isProfileDropdownOpen && (

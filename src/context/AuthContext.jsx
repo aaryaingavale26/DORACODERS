@@ -4,21 +4,48 @@ const AuthContext = createContext();
 const AUTH_STORAGE_KEY = 'udaan_auth_v5';
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem(AUTH_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      console.error("Failed to load auth state", e);
-      return null;
-    }
-  });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'shop-detail' | 'dashboard'
   const [activeSisterId, setActiveSisterId] = useState(null);
   const [dashboardTab, setDashboardTab] = useState('bookings'); // 'bookings' | 'shop' | 'subscription'
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/auth/user');
+        const data = await res.json();
+        if (data.authenticated && data.user) {
+          setCurrentUser({
+            id: data.user.id,
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            avatar: data.user.profileImage,
+            subscription: data.user.sisters?.[0]?.subscription || 'free',
+            sisterId: data.user.sisters?.[0]?.id || null
+          });
+        } else {
+          const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+          if (saved) {
+            setCurrentUser(JSON.parse(saved));
+          }
+        }
+      } catch (e) {
+        console.warn("Backend auth unavailable, using offline mock state", e);
+        const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (saved) {
+          setCurrentUser(JSON.parse(saved));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSession();
+  }, []);
 
   useEffect(() => {
     try {
@@ -78,7 +105,12 @@ export function AuthProvider({ children }) {
     return user;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/auth/logout');
+    } catch (e) {
+      console.error("Failed backend logout", e);
+    }
     setCurrentUser(null);
     setCurrentView('home');
     setActiveSisterId(null);
@@ -138,6 +170,14 @@ export function AuthProvider({ children }) {
   };
 
   const isAuthenticated = !!currentUser;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#faf7f5] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#d81b60]"></div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{
