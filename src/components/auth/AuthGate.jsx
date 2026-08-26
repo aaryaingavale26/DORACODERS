@@ -16,9 +16,11 @@ export default function AuthGate() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Error banner state
+  const [authError, setAuthError] = useState('');
 
   const handleOpenGooglePrompt = () => {
+    setAuthError('');
     setIsGooglePromptOpen(true);
   };
 
@@ -26,25 +28,36 @@ export default function AuthGate() {
     e?.preventDefault();
     if (!googleEmail.trim()) return;
 
+    setAuthError('');
     setIsSigningIn(true);
     try {
       await loginWithGoogle(role, googleEmail.trim(), googleName.trim());
       setIsGooglePromptOpen(false);
-    } catch (e) {
-      console.error("Google Auth failed", e);
+    } catch (err) {
+      console.error("Google Auth failed", err);
+      setAuthError(err.message || "Authentication failed. Please try again.");
     } finally {
       setIsSigningIn(false);
     }
   };
 
-  const handleEmailAuth = (e) => {
+  const handleEmailAuth = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
 
-    if (isRegisterMode) {
-      register(name.trim() || email.split('@')[0], email.trim(), password, role);
-    } else {
-      login(email.trim(), password, role);
+    setAuthError('');
+    setIsSigningIn(true);
+    try {
+      if (isRegisterMode) {
+        await register(name.trim() || email.split('@')[0], email.trim(), password, role);
+      } else {
+        await login(email.trim(), password, role);
+      }
+    } catch (err) {
+      console.error("Auth failed:", err);
+      setAuthError(err.message || "Authentication failed. Please check your credentials.");
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -103,9 +116,18 @@ export default function AuthGate() {
               Welcome to Udaan
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Select your role and sign in with your Google account
+              Select your role and sign in securely to start
             </p>
           </div>
+
+          {/* Error Alert Box */}
+          {authError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-2.5 text-xs text-red-700 animate-shake">
+              <span className="text-red-500 font-bold shrink-0 text-sm">⚠️</span>
+              <div className="flex-1 font-medium leading-relaxed">{authError}</div>
+              <button onClick={() => setAuthError('')} className="text-red-400 hover:text-red-600 font-bold ml-1">✕</button>
+            </div>
+          )}
 
           <div className="space-y-5">
             

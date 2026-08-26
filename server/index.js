@@ -284,26 +284,87 @@ app.post('/api/auth/google-sync', async (req, res) => {
   }
 });
 
-// Direct Email Register API
+// Direct Email Register API with Database Cross-Check
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, role = 'buyer' } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
 
   try {
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = await User.create({
-        name: name || email.split('@')[0],
-        email,
-        profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
-        role
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(409).json({ 
+        success: false, 
+        error: "An account with this email already exists. Please sign in instead." 
       });
-      console.log(`[MongoDB Atlas] New email user registered: ${user.email}`);
     }
-    res.json({ success: true, user });
+
+    const userName = name || email.split('@')[0];
+    const userAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`;
+
+    const user = await User.create({
+      name: userName,
+      email: email.toLowerCase().trim(),
+      profileImage: userAvatar,
+      role
+    });
+
+    let sisterProfile = null;
+    if (role === 'sister') {
+      sisterProfile = await Sister.create({
+        userId: user._id,
+        name: user.name,
+        specialty: "Boutique Tailoring & Crafts",
+        category: "tailoring",
+        rate: 400,
+        rateUnit: "/visit",
+        avatar: user.profileImage,
+        distance: "1.0 km away",
+        distanceKm: 1.0,
+        location: "Local Community Zone",
+        experience: "Skilled artisan partner with verified qualifications.",
+        phone: "+91 98765 43210",
+        availableDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        timeSlots: ["Morning (9 AM - 12 PM)", "Afternoon (1 PM - 4 PM)", "Evening (5 PM - 8 PM)"],
+        services: [
+          { id: `s-${Date.now()}-1`, name: "Standard Doorstep Service", price: 400, duration: "60 mins" },
+          { id: `s-${Date.now()}-2`, name: "Custom Consultation & Fitting", price: 500, duration: "75 mins" }
+        ],
+        badges: ["Newly Enrolled", "Skill Certified", "Self-Empowered"]
+      });
+    }
+
+    console.log(`[MongoDB Atlas] New user registered: ${user.email} (${user.role})`);
+    res.status(201).json({ success: true, user, sisterProfile });
   } catch (err) {
     console.error("[MongoDB Atlas] Register error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Direct Email Login API with Database Cross-Check
+app.post('/api/auth/login', async (req, res) => {
+  const { email, role = 'buyer' } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+
+  try {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "No account found with this email in database. Please register first." 
+      });
+    }
+
+    let sisterProfile = null;
+    if (user.role === 'sister') {
+      sisterProfile = await Sister.findOne({ userId: user._id });
+    }
+
+    console.log(`[MongoDB Atlas] User verified and logged in: ${user.email}`);
+    res.json({ success: true, user, sisterProfile });
+  } catch (err) {
+    console.error("[MongoDB Atlas] Login error:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

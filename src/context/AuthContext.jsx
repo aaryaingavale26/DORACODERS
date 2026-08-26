@@ -135,78 +135,78 @@ export function AuthProvider({ children }) {
     return googleUser;
   };
 
-  const login = (email, password, role = 'buyer') => {
-    const name = email.split('@')[0];
-    const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-    
-    let sisterId = null;
-    if (role === 'sister') {
-      sisterId = 'sister-1';
-    }
-
-    const user = {
-      id: `usr-${Date.now()}`,
-      name: formattedName,
-      email,
-      role,
-      subscription: 'free',
-      sisterId
-    };
-
-    // Sync to MongoDB Atlas
+  const login = async (email, password, role = 'buyer') => {
+    const cleanEmail = email.toLowerCase().trim();
     try {
-      fetch('/api/auth/google-sync', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: user.name,
-          email: user.email,
-          profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
-          role: user.role
-        })
-      }).catch(e => {});
-    } catch (e) {}
+        body: JSON.stringify({ email: cleanEmail, role })
+      });
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "No account found with this email in MongoDB Atlas. Please register first.");
+      }
 
-    setCurrentUser(user);
-    setCurrentView(role === 'sister' ? 'dashboard' : 'home');
-    if (role === 'sister') {
-      setDashboardTab('bookings');
+      const user = {
+        id: data.user?._id || `usr-${Date.now()}`,
+        name: data.user?.name || cleanEmail.split('@')[0],
+        email: data.user?.email || cleanEmail,
+        role: data.user?.role || role,
+        avatar: data.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.user?.name || cleanEmail)}`,
+        subscription: 'free',
+        sisterId: data.user?.role === 'sister' ? (data.sisterProfile?._id || 'sister-1') : null
+      };
+
+      setCurrentUser(user);
+      setCurrentView(user.role === 'sister' ? 'dashboard' : 'home');
+      if (user.role === 'sister') {
+        setDashboardTab('bookings');
+      }
+      setIsOnboardingModalOpen(false);
+      return user;
+    } catch (err) {
+      throw err;
     }
-    setIsOnboardingModalOpen(false);
-    return user;
   };
 
-  const register = (name, email, password, role = 'buyer') => {
-    const user = {
-      id: `usr-${Date.now()}`,
-      name,
-      email,
-      role,
-      subscription: 'free',
-      sisterId: role === 'sister' ? 'sister-1' : null
-    };
+  const register = async (name, email, password, role = 'buyer') => {
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanName = name.trim() || cleanEmail.split('@')[0];
 
-    // Sync to MongoDB Atlas
     try {
-      fetch('/api/auth/google-sync', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: user.name,
-          email: user.email,
-          profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
-          role: user.role
-        })
-      }).catch(e => {});
-    } catch (e) {}
+        body: JSON.stringify({ name: cleanName, email: cleanEmail, role })
+      });
+      const data = await res.json();
 
-    setCurrentUser(user);
-    setCurrentView(role === 'sister' ? 'dashboard' : 'home');
-    if (role === 'sister') {
-      setDashboardTab('bookings');
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "An account with this email already exists in MongoDB Atlas.");
+      }
+
+      const user = {
+        id: data.user?._id || `usr-${Date.now()}`,
+        name: data.user?.name || cleanName,
+        email: data.user?.email || cleanEmail,
+        role: data.user?.role || role,
+        avatar: data.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
+        subscription: 'free',
+        sisterId: data.user?.role === 'sister' ? (data.sisterProfile?._id || 'sister-1') : null
+      };
+
+      setCurrentUser(user);
+      setCurrentView(user.role === 'sister' ? 'dashboard' : 'home');
+      if (user.role === 'sister') {
+        setDashboardTab('bookings');
+      }
+      setIsOnboardingModalOpen(false);
+      return user;
+    } catch (err) {
+      throw err;
     }
-    setIsOnboardingModalOpen(false);
-    return user;
   };
 
   const logout = async () => {
