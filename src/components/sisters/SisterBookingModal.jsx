@@ -90,6 +90,8 @@ export default function SisterBookingModal() {
     }
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleConfirmBooking = async (e) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
@@ -97,27 +99,34 @@ export default function SisterBookingModal() {
       return;
     }
 
-    const newBooking = await createBooking({
-      sisterId: sister.id || sister._id,
-      sisterName: sister.name,
-      sisterAvatar: sister.avatar,
-      sisterPhone: sister.phone || '+91 98765 43210',
-      specialty: sister.specialty,
-      serviceName: activeService.name,
-      hiringPurpose: `Hired ${sister.name} for ${sister.specialty}: ${activeService.name}`,
-      amount: servicePrice,
-      visitFee,
-      totalAmount,
-      date,
-      timeSlot,
-      customerName: customerName.trim(),
-      customerEmail: currentUser?.email || 'customer@gmail.com',
-      customerPhone: customerPhone.trim() || currentUser?.phone || '+91 98000 00000',
-      customerAddress: customerAddress.trim(),
-      specialNotes: specialNotes || `Doorstep appointment for ${activeService.name}`
-    });
+    setIsSubmitting(true);
+    try {
+      const newBooking = await createBooking({
+        sisterId: String(sister.id || sister._id),
+        sisterName: sister.name,
+        sisterAvatar: sister.avatar,
+        sisterPhone: sister.phone || '+91 98765 43210',
+        specialty: sister.specialty,
+        serviceName: activeService.name,
+        hiringPurpose: `Hired ${sister.name} for ${sister.specialty}: ${activeService.name}`,
+        amount: servicePrice,
+        visitFee,
+        totalAmount,
+        date,
+        timeSlot,
+        customerName: customerName.trim(),
+        customerEmail: currentUser?.email || 'customer@gmail.com',
+        customerPhone: customerPhone.trim() || currentUser?.phone || '+91 98000 00000',
+        customerAddress: customerAddress.trim(),
+        specialNotes: specialNotes || `Doorstep appointment for ${activeService.name}`
+      });
 
-    setConfirmedBooking(newBooking);
+      setConfirmedBooking(newBooking);
+    } catch (err) {
+      console.error("Booking submission error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -379,10 +388,17 @@ export default function SisterBookingModal() {
               </button>
               <button
                 type="submit"
-                className="px-7 py-3 rounded-xl bg-[#d81b60] hover:bg-[#c2185b] text-white font-bold text-xs sm:text-sm shadow-md shadow-pink-600/30 active:scale-95 transition-all flex items-center gap-2"
+                disabled={isSubmitting}
+                className="px-7 py-3 rounded-xl bg-[#d81b60] hover:bg-[#c2185b] text-white font-bold text-xs sm:text-sm shadow-md shadow-pink-600/30 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
               >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Confirm & Schedule Visit</span>
+                {isSubmitting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white" />
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Confirm & Schedule Visit</span>
+                  </>
+                )}
               </button>
             </div>
 

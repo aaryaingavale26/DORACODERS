@@ -170,10 +170,17 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, role })
       });
-      const data = await res.json();
+      
+      let data = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        data = {};
+      }
       
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "No account found with this email in MongoDB Atlas. Please register first.");
+        throw new Error(data.error || "No account found with this email in database. Please click 'Create New Account' to register first.");
       }
 
       const user = {
@@ -184,7 +191,8 @@ export function AuthProvider({ children }) {
         role: data.user?.role || role,
         avatar: data.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.user?.name || cleanEmail)}`,
         subscription: 'free',
-        sisterId: data.user?.role === 'sister' ? (data.sisterProfile?._id || 'sister-1') : null
+        sisterId: data.user?.role === 'sister' ? (data.sisterProfile?._id || 'sister-1') : null,
+        sisterProfile: data.sisterProfile || null
       };
 
       setCurrentUser(user);
@@ -210,10 +218,17 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: cleanName, email: cleanEmail, phone: cleanPhone, role })
       });
-      const data = await res.json();
+      
+      let data = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        data = {};
+      }
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "An account with this email already exists in MongoDB Atlas.");
+        throw new Error(data.error || "An account with this email already exists in MongoDB Atlas. Please sign in instead.");
       }
 
       const user = {
@@ -224,7 +239,8 @@ export function AuthProvider({ children }) {
         role: data.user?.role || role,
         avatar: data.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanName)}`,
         subscription: 'free',
-        sisterId: data.user?.role === 'sister' ? (data.sisterProfile?._id || 'sister-1') : null
+        sisterId: data.user?.role === 'sister' ? (data.sisterProfile?._id || 'sister-1') : null,
+        sisterProfile: data.sisterProfile || null
       };
 
       setCurrentUser(user);

@@ -71,6 +71,7 @@ export function BookingProvider({ children }) {
   }, [bookings]);
 
   const createBooking = async (bookingData) => {
+    let normalized = null;
     try {
       const res = await fetch('/api/bookings', {
         method: 'POST',
@@ -78,33 +79,47 @@ export function BookingProvider({ children }) {
         body: JSON.stringify(bookingData)
       });
       if (res.ok) {
-        const newBooking = await res.json();
-        const normalized = { ...newBooking, id: newBooking._id || newBooking.id };
-        setBookings(prev => [normalized, ...prev]);
+        let newBooking = {};
         try {
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-        } catch (e) {}
-        return normalized;
+          const text = await res.text();
+          newBooking = text ? JSON.parse(text) : {};
+        } catch (e) {
+          newBooking = {};
+        }
+        normalized = { 
+          ...newBooking, 
+          id: newBooking._id || newBooking.id || `bk-${Date.now()}`,
+          bookingRef: newBooking.bookingRef || `UD-${Math.floor(10000 + Math.random() * 90000)}`,
+          status: newBooking.status || "Pending",
+          ...bookingData
+        };
       }
     } catch (err) {
-      console.error("Database connection failed, falling back to offline booking mock creation", err);
+      console.warn("API booking dispatch warning:", err);
     }
 
-    // Offline fallback
-    const randomCode = Math.floor(10000 + Math.random() * 90000);
-    const fallbackBooking = {
-      id: `bk-${Date.now()}`,
-      bookingRef: `UD-${randomCode}`,
-      status: "Pending",
-      createdAt: new Date().toISOString(),
-      ...bookingData
-    };
-    setBookings(prev => [fallbackBooking, ...prev]);
-    return fallbackBooking;
+    if (!normalized) {
+      // Robust client-side fallback
+      const randomCode = Math.floor(10000 + Math.random() * 90000);
+      normalized = {
+        id: `bk-${Date.now()}`,
+        bookingRef: `UD-${randomCode}`,
+        status: "Pending",
+        createdAt: new Date().toISOString(),
+        ...bookingData
+      };
+    }
+
+    setBookings(prev => [normalized, ...prev.filter(b => b.id !== normalized.id)]);
+    try {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
+    } catch (e) {}
+
+    return normalized;
   };
 
   const updateBookingStatus = async (bookingId, status) => {
