@@ -255,6 +255,51 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const resetPassword = async (email, newPassword, role = 'buyer') => {
+    const cleanEmail = email.toLowerCase().trim();
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, newPassword, role })
+      });
+      
+      let data = {};
+      try {
+        const text = await res.text();
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        data = {};
+      }
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to reset password. Please check your registered email.");
+      }
+
+      const user = {
+        id: data.user?._id || `usr-${Date.now()}`,
+        name: data.user?.name || cleanEmail.split('@')[0],
+        email: data.user?.email || cleanEmail,
+        phone: data.user?.phone || "+91 98000 00000",
+        role: data.user?.role || role,
+        avatar: data.user?.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.user?.name || cleanEmail)}`,
+        subscription: 'free',
+        sisterId: data.user?.role === 'sister' ? (data.sisterProfile?._id || 'sister-1') : null,
+        sisterProfile: data.sisterProfile || null
+      };
+
+      setCurrentUser(user);
+      setCurrentView(user.role === 'sister' ? 'dashboard' : 'home');
+      if (user.role === 'sister') {
+        setDashboardTab('bookings');
+      }
+      setIsOnboardingModalOpen(false);
+      return user;
+    } catch (err) {
+      throw err;
+    }
+  };
+
   const logout = async () => {
     try {
       await fetch('/auth/logout');
@@ -344,6 +389,7 @@ export function AuthProvider({ children }) {
       loginWithGoogle,
       login,
       register,
+      resetPassword,
       logout,
       enrollCurrentAsSister,
       switchPlan,

@@ -379,6 +379,43 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Reset Password API with Database Cross-Check
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { email, newPassword, role = 'buyer' } = req.body;
+  if (!email || !newPassword) {
+    return res.status(400).json({ error: "Email and new password are required" });
+  }
+
+  try {
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "No account found with this email in MongoDB Atlas. Please register first."
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    let sisterProfile = null;
+    if (user.role === 'sister') {
+      sisterProfile = await Sister.findOne({ userId: user._id });
+    }
+
+    console.log(`[MongoDB Atlas] Password updated successfully for: ${user.email}`);
+    res.json({
+      success: true,
+      message: "Password reset successful! You are now logged in.",
+      user,
+      sisterProfile
+    });
+  } catch (err) {
+    console.error("[MongoDB Atlas] Reset password error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // List all registered users from MongoDB Atlas
 app.get('/api/users', async (req, res) => {
   try {

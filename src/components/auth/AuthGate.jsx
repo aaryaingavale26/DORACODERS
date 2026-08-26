@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Sparkles, ShieldCheck, Heart, User, Lock, Mail, Phone, ArrowRight, X } from 'lucide-react';
+import { Sparkles, ShieldCheck, Heart, User, Lock, Mail, Phone, ArrowRight, X, KeyRound, CheckCircle2 } from 'lucide-react';
 
 export default function AuthGate() {
-  const { loginWithGoogle, login, register } = useAuth();
+  const { loginWithGoogle, login, register, resetPassword } = useAuth();
   const [role, setRole] = useState('buyer'); // 'buyer' | 'sister'
   const [isSigningIn, setIsSigningIn] = useState(false);
   
@@ -15,15 +15,21 @@ export default function AuthGate() {
 
   // Email / Password Form state
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  // Error banner state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Error & Success banner state
   const [authError, setAuthError] = useState('');
+  const [authSuccess, setAuthSuccess] = useState('');
 
   const handleOpenGooglePrompt = () => {
     setAuthError('');
+    setAuthSuccess('');
     setIsGooglePromptOpen(true);
   };
 
@@ -32,6 +38,7 @@ export default function AuthGate() {
     if (!googleEmail.trim()) return;
 
     setAuthError('');
+    setAuthSuccess('');
     setIsSigningIn(true);
     try {
       await loginWithGoogle(
@@ -52,14 +59,27 @@ export default function AuthGate() {
 
   const handleEmailAuth = async (e) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    if (!email.trim()) return;
 
     setAuthError('');
+    setAuthSuccess('');
     setIsSigningIn(true);
+
     try {
-      if (isRegisterMode) {
+      if (isForgotPasswordMode) {
+        if (!newPassword.trim()) {
+          throw new Error("Please enter your new password.");
+        }
+        if (newPassword !== confirmPassword) {
+          throw new Error("Passwords do not match. Please re-enter.");
+        }
+        await resetPassword(email.trim(), newPassword.trim(), role);
+        setAuthSuccess("Password updated successfully! Logged in.");
+      } else if (isRegisterMode) {
+        if (!password.trim()) throw new Error("Please enter a password.");
         await register(name.trim() || email.split('@')[0], email.trim(), password, role, phone.trim());
       } else {
+        if (!password.trim()) throw new Error("Please enter your password.");
         await login(email.trim(), password, role);
       }
     } catch (err) {
@@ -67,6 +87,21 @@ export default function AuthGate() {
       setAuthError(err.message || "Authentication failed. Please check your credentials.");
     } finally {
       setIsSigningIn(false);
+    }
+  };
+
+  const switchMode = (mode) => {
+    setAuthError('');
+    setAuthSuccess('');
+    if (mode === 'forgot') {
+      setIsForgotPasswordMode(true);
+      setIsRegisterMode(false);
+    } else if (mode === 'register') {
+      setIsRegisterMode(true);
+      setIsForgotPasswordMode(false);
+    } else {
+      setIsRegisterMode(false);
+      setIsForgotPasswordMode(false);
     }
   };
 
@@ -122,12 +157,28 @@ export default function AuthGate() {
         <div className="p-8 sm:p-12 flex flex-col justify-center">
           <div className="mb-6">
             <h2 className="text-2xl font-bold font-serif text-gray-900">
-              Welcome to Udaan
+              {isForgotPasswordMode 
+                ? 'Reset Your Password' 
+                : isRegisterMode 
+                  ? 'Create New Account' 
+                  : 'Welcome to Udaan'}
             </h2>
             <p className="text-xs text-gray-500 mt-1">
-              Sign in with your Google account or email to continue
+              {isForgotPasswordMode 
+                ? 'Enter your registered email and set a new password' 
+                : isRegisterMode 
+                  ? 'Join our community of buyers and skilled sisters' 
+                  : 'Sign in with your Google account or email to continue'}
             </p>
           </div>
+
+          {/* Success Banner */}
+          {authSuccess && (
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-700 animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="flex-1 font-medium">{authSuccess}</div>
+            </div>
+          )}
 
           {/* Error Alert Box */}
           {authError && (
@@ -171,26 +222,30 @@ export default function AuthGate() {
               </div>
             </div>
 
-            {/* Single Clean Google Sign-In Button */}
-            <button
-              type="button"
-              onClick={handleOpenGooglePrompt}
-              className="w-full bg-white border-2 border-warm-300 hover:border-[#d81b60] hover:bg-pink-50/50 text-gray-800 font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-3 transition-all shadow-sm active:scale-[0.98] cursor-pointer group"
-            >
-              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.68 1.48 7.58l3.78 2.93C6.18 7.37 8.87 5.04 12 5.04z"/>
-                <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.71 2.88c2.17-2 3.42-4.94 3.42-8.61z"/>
-                <path fill="#FBBC05" d="M5.26 10.51c-.24-.73-.38-1.5-.38-2.3 0-.8.14-1.57.38-2.3L1.48 3.51C.53 5.41 0 7.54 0 9.8s.53 4.39 1.48 6.29l3.78-2.93a7.87 7.87 0 010-4.65z"/>
-                <path fill="#34A853" d="M12 18.96c-3.13 0-5.82-2.33-6.74-5.47l-3.78 2.93C3.37 20.32 7.35 23 12 23c3.24 0 6.06-1.07 8.08-2.91l-3.71-2.88c-1.1.74-2.5 1.18-4.37 1.18z"/>
-              </svg>
-              <span className="group-hover:text-pink-900">Continue with Google ({role === 'sister' ? 'Sister' : 'Buyer'})</span>
-            </button>
+            {/* Google Sign In Button (Hidden in Forgot Password mode) */}
+            {!isForgotPasswordMode && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleOpenGooglePrompt}
+                  className="w-full bg-white border-2 border-warm-300 hover:border-[#d81b60] hover:bg-pink-50/50 text-gray-800 font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-3 transition-all shadow-sm active:scale-[0.98] cursor-pointer group"
+                >
+                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.67 1.48 14.98 1 12 1 7.35 1 3.37 3.68 1.48 7.58l3.78 2.93C6.18 7.37 8.87 5.04 12 5.04z"/>
+                    <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.4 3.58l3.71 2.88c2.17-2 3.42-4.94 3.42-8.61z"/>
+                    <path fill="#FBBC05" d="M5.26 10.51c-.24-.73-.38-1.5-.38-2.3 0-.8.14-1.57.38-2.3L1.48 3.51C.53 5.41 0 7.54 0 9.8s.53 4.39 1.48 6.29l3.78-2.93a7.87 7.87 0 010-4.65z"/>
+                    <path fill="#34A853" d="M12 18.96c-3.13 0-5.82-2.33-6.74-5.47l-3.78 2.93C3.37 20.32 7.35 23 12 23c3.24 0 6.06-1.07 8.08-2.91l-3.71-2.88c-1.1.74-2.5 1.18-4.37 1.18z"/>
+                  </svg>
+                  <span className="group-hover:text-pink-900">Continue with Google ({role === 'sister' ? 'Sister' : 'Buyer'})</span>
+                </button>
 
-            <div className="relative flex py-1 items-center">
-              <div className="flex-grow border-t border-warm-200"></div>
-              <span className="flex-shrink mx-3 text-[10px] text-gray-400 font-bold uppercase tracking-wider">or sign in with password</span>
-              <div className="flex-grow border-t border-warm-200"></div>
-            </div>
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-warm-200"></div>
+                  <span className="flex-shrink mx-3 text-[10px] text-gray-400 font-bold uppercase tracking-wider">or continue with email</span>
+                  <div className="flex-grow border-t border-warm-200"></div>
+                </div>
+              </>
+            )}
 
             {/* Email Form */}
             <form onSubmit={handleEmailAuth} className="space-y-3">
@@ -226,42 +281,109 @@ export default function AuthGate() {
                 <input
                   type="email"
                   required
-                  placeholder="Your Email (e.g. yourname@gmail.com)"
+                  placeholder="Your Registered Email (e.g. yourname@gmail.com)"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
                 />
               </div>
 
-              <div className="relative">
-                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  required
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
-                />
-              </div>
+              {!isForgotPasswordMode ? (
+                <div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      required
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+                    />
+                  </div>
+
+                  {/* Forgot Password Link on Login Form */}
+                  {!isRegisterMode && (
+                    <div className="flex justify-end mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => switchMode('forgot')}
+                        className="text-[11px] font-semibold text-pink-700 hover:text-pink-900 hover:underline cursor-pointer"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Forgot Password Mode: New Password & Confirm Password */
+                <div className="space-y-3 pt-1">
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      required
+                      placeholder="Confirm New Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 bg-warm-50 border border-warm-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-pink-500/30"
+                    />
+                  </div>
+                </div>
+              )}
 
               <button
                 type="submit"
-                className="w-full bg-[#d81b60] hover:bg-[#c2185b] text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-1.5"
+                disabled={isSigningIn}
+                className="w-full bg-[#d81b60] hover:bg-[#c2185b] text-white font-bold py-3 rounded-xl text-xs transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
               >
-                <span>{isRegisterMode ? 'Create New Account' : 'Sign In with Email'}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                {isSigningIn ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white" />
+                ) : (
+                  <>
+                    <span>
+                      {isForgotPasswordMode 
+                        ? 'Reset Password & Sign In' 
+                        : isRegisterMode 
+                          ? 'Create New Account' 
+                          : 'Sign In with Email'}
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
               </button>
             </form>
 
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setIsRegisterMode(!isRegisterMode)}
-                className="text-[11px] text-pink-700 hover:text-pink-900 font-bold"
-              >
-                {isRegisterMode ? 'Already have an account? Sign in' : "Don't have an account? Register"}
-              </button>
+            <div className="text-center pt-1 space-y-1">
+              {isForgotPasswordMode ? (
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="text-[11px] text-pink-700 hover:text-pink-900 font-bold"
+                >
+                  ← Back to Sign In
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => switchMode(isRegisterMode ? 'login' : 'register')}
+                  className="text-[11px] text-pink-700 hover:text-pink-900 font-bold"
+                >
+                  {isRegisterMode ? 'Already have an account? Sign in' : "Don't have an account? Register"}
+                </button>
+              )}
             </div>
 
           </div>
