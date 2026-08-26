@@ -294,81 +294,119 @@ app.post('/api/auth/google-sync', async (req, res) => {
   }
 });
 
-// Direct Email Register API with Database Cross-Check
+// Direct Email Register API with Database Sync
 app.post('/api/auth/register', async (req, res) => {
   const { name, email, phone, role = 'buyer' } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
 
   try {
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-    if (existingUser) {
-      return res.status(409).json({ 
-        success: false, 
-        error: "An account with this email already exists. Please sign in instead." 
-      });
-    }
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
 
-    const userName = name || email.split('@')[0];
+    const userName = name || cleanEmail.split('@')[0];
     const userAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`;
 
-    const user = await User.create({
-      name: userName,
-      email: email.toLowerCase().trim(),
-      phone: phone || '',
-      profileImage: userAvatar,
-      role
-    });
+    if (!user) {
+      user = await User.create({
+        name: userName,
+        email: cleanEmail,
+        phone: phone || '',
+        profileImage: userAvatar,
+        role
+      });
+      console.log(`[MongoDB Atlas] New user registered: ${user.email} (${user.role}) - Phone: ${user.phone}`);
+    } else {
+      // If user exists, update details smoothly
+      user.name = userName;
+      if (phone) user.phone = phone;
+      user.role = role;
+      await user.save();
+      console.log(`[MongoDB Atlas] Existing user updated on registration: ${user.email} (${user.role})`);
+    }
 
     let sisterProfile = null;
     if (role === 'sister') {
-      sisterProfile = await Sister.create({
-        userId: user._id,
-        name: user.name,
-        specialty: "Boutique Tailoring & Crafts",
-        category: "tailoring",
-        rate: 400,
-        rateUnit: "/visit",
-        avatar: user.profileImage,
-        distance: "1.0 km away",
-        distanceKm: 1.0,
-        location: "Local Community Zone",
-        experience: "Skilled artisan partner with verified qualifications.",
-        phone: phone || "+91 98765 43210",
-        availableDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-        timeSlots: ["Morning (9 AM - 12 PM)", "Afternoon (1 PM - 4 PM)", "Evening (5 PM - 8 PM)"],
-        services: [
-          { id: `s-${Date.now()}-1`, name: "Standard Doorstep Service", price: 400, duration: "60 mins" },
-          { id: `s-${Date.now()}-2`, name: "Custom Consultation & Fitting", price: 500, duration: "75 mins" }
-        ],
-        badges: ["Newly Enrolled", "Skill Certified", "Self-Empowered"]
-      });
+      sisterProfile = await Sister.findOne({ userId: user._id });
+      if (!sisterProfile) {
+        sisterProfile = await Sister.create({
+          userId: user._id,
+          name: user.name,
+          specialty: "Boutique Tailoring & Crafts",
+          category: "tailoring",
+          rate: 400,
+          rateUnit: "/visit",
+          avatar: user.profileImage,
+          distance: "1.0 km away",
+          distanceKm: 1.0,
+          location: "Local Community Zone",
+          experience: "Skilled artisan partner with verified qualifications.",
+          phone: phone || user.phone || "+91 98765 43210",
+          availableDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+          timeSlots: ["Morning (9 AM - 12 PM)", "Afternoon (1 PM - 4 PM)", "Evening (5 PM - 8 PM)"],
+          services: [
+            { id: `s-${Date.now()}-1`, name: "Standard Doorstep Service", price: 400, duration: "60 mins" },
+            { id: `s-${Date.now()}-2`, name: "Custom Consultation & Fitting", price: 500, duration: "75 mins" }
+          ],
+          badges: ["Newly Enrolled", "Skill Certified", "Self-Empowered"]
+        });
+      }
     }
 
-    console.log(`[MongoDB Atlas] New user registered: ${user.email} (${user.role}) - Phone: ${user.phone}`);
-    res.status(201).json({ success: true, user, sisterProfile });
+    res.status(200).json({ success: true, message: "Account setup successful!", user, sisterProfile });
   } catch (err) {
     console.error("[MongoDB Atlas] Register error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Direct Email Login API with Database Cross-Check
+// Direct Email Login API with Database Sync & Seamless Entry
 app.post('/api/auth/login', async (req, res) => {
   const { email, role = 'buyer' } = req.body;
   if (!email) return res.status(400).json({ error: "Email is required" });
 
   try {
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+    let user = await User.findOne({ email: cleanEmail });
+    
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        error: "No account found with this email in database. Please register first." 
+      // Auto-create user if not already in DB so user is NEVER blocked
+      const userName = cleanEmail.split('@')[0];
+      const userAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`;
+      user = await User.create({
+        name: userName.charAt(0).toUpperCase() + userName.slice(1),
+        email: cleanEmail,
+        role: role || 'buyer',
+        profileImage: userAvatar
       });
+      console.log(`[MongoDB Atlas] User auto-created on sign-in: ${user.email} (${user.role})`);
     }
 
     let sisterProfile = null;
-    if (user.role === 'sister') {
+    if (user.role === 'sister' || role === 'sister') {
       sisterProfile = await Sister.findOne({ userId: user._id });
+      if (!sisterProfile) {
+        sisterProfile = await Sister.create({
+          userId: user._id,
+          name: user.name,
+          specialty: "Boutique Tailoring & Crafts",
+          category: "tailoring",
+          rate: 450,
+          rateUnit: "/visit",
+          avatar: user.profileImage,
+          distance: "1.2 km away",
+          distanceKm: 1.2,
+          location: "Urban Enclave Zone",
+          experience: "Skilled artisan partner with verified qualifications.",
+          phone: user.phone || "+91 98765 43210",
+          availableDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+          timeSlots: ["Morning (9 AM - 12 PM)", "Afternoon (1 PM - 4 PM)", "Evening (5 PM - 8 PM)"],
+          services: [
+            { id: `s-${Date.now()}-1`, name: "Standard Doorstep Service", price: 450, duration: "60 mins" },
+            { id: `s-${Date.now()}-2`, name: "Custom Consultation & Fitting", price: 550, duration: "75 mins" }
+          ],
+          badges: ["Top Rated", "Skill Certified"]
+        });
+      }
     }
 
     console.log(`[MongoDB Atlas] User verified and logged in: ${user.email}`);
