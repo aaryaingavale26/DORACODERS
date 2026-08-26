@@ -370,15 +370,7 @@ export default function Navbar() {
                     <p className="text-[10px] text-gray-500 font-medium truncate mt-0.5">{currentUser.email}</p>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setIsProfileDropdownOpen(false);
-                      toggleDemoRole();
-                    }}
-                    className="w-full text-left px-3.5 py-2 hover:bg-pink-50 hover:text-brand-pink rounded-xl transition-all flex items-center gap-2"
-                  >
-                    <span>🔄 Switch to {isSister ? 'Buyer' : 'Sister'} View</span>
-                  </button>
+
 
                   <button
                     onClick={() => {
@@ -449,12 +441,7 @@ export default function Navbar() {
               
               <div className="border-t border-warm-150 my-2 pt-2" />
               
-              <button
-                onClick={() => { setIsMobileMenuOpen(false); toggleDemoRole(); }}
-                className="w-full text-left px-4 py-2.5 hover:bg-pink-50 rounded-xl text-brand-pink"
-              >
-                🔄 Switch View to {isSister ? 'Buyer' : 'Sister'} Mode
-              </button>
+
 
               <button
                 onClick={() => { setIsMobileMenuOpen(false); logout(); }}

@@ -3,7 +3,10 @@ import mongoose from 'mongoose';
 const connectDB = async () => {
   try {
     const connString = process.env.DATABASE_URL || 'mongodb://127.0.0.1:27017/udaan';
-    await mongoose.connect(connString);
+    await mongoose.connect(connString, {
+      family: 4,
+      serverSelectionTimeoutMS: 5000
+    });
     console.log('Connected to MongoDB successfully.');
   } catch (err) {
     console.error('MongoDB connection error:', err);

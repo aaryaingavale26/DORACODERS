@@ -40,7 +40,7 @@ export default function SisterDashboard() {
   const setActiveTab = (tab) => setDashboardTab(tab);
   
   // Find current sister profile
-  const sister = sisters.find(s => s.id === currentUser?.sisterId) || sisters[0];
+  const sister = currentUser?.sisterProfile || sisters.find(s => s.id === currentUser?.sisterId) || sisters[0];
 
   // Shop Management State
   const [specialty, setSpecialty] = useState(sister?.specialty || '');
@@ -79,13 +79,7 @@ export default function SisterDashboard() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
         <h3 className="text-xl font-bold font-serif text-gray-800">No Enrolled Sister Profile Linked</h3>
-        <p className="text-xs text-gray-500 mt-1">Please log out and enroll as a Skilled Sister or toggle your role.</p>
-        <button 
-          onClick={toggleDemoRole}
-          className="mt-4 px-6 py-2.5 bg-brand-pink text-white rounded-xl text-xs font-bold"
-        >
-          Toggle to Sister Role
-        </button>
+        <p className="text-xs text-gray-500 mt-1">Please log out and log back in as a Skilled Sister.</p>
       </div>
     );
   }
@@ -93,8 +87,9 @@ export default function SisterDashboard() {
   const isPro = currentUser?.subscription === 'pro' || sister.subscription === 'pro';
 
   // Filter bookings for this sister
-  const sisterBookings = bookings.filter(b => b.sisterId === sister.id || !b.sisterId);
-  const activeBookings = sisterBookings.filter(b => b.status === 'Confirmed' || b.status === 'In Progress');
+  const sisterIdToMatch = sister?._id || sister?.id;
+  const sisterBookings = bookings.filter(b => b.sisterId === sisterIdToMatch || b.sisterId === sister?.id || !b.sisterId);
+  const activeBookings = sisterBookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed' || b.status === 'In Progress');
   
   // Filter products for this sister
   const sisterProducts = products.filter(p => p.sisterId === sister.id);
@@ -234,13 +229,7 @@ export default function SisterDashboard() {
           </div>
         </div>
 
-        {/* Demo Roles Toggle button */}
-        <button
-          onClick={toggleDemoRole}
-          className="px-5 py-2.5 border border-warm-300 hover:border-pink-300 hover:bg-pink-50 text-gray-700 hover:text-brand-pink rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
-        >
-          🔄 Switch to Buyer View
-        </button>
+
       </div>
 
       {/* Grid Dashboard Layout */}
@@ -321,9 +310,10 @@ export default function SisterDashboard() {
                   <div className="space-y-4">
                     {sisterBookings.map(booking => {
                       const isCompleted = booking.status === 'Completed';
-                      const isCancelled = booking.status === 'Cancelled';
+                      const isCancelled = booking.status === 'Cancelled' || booking.status === 'Rejected';
                       const isConfirm = booking.status === 'Confirmed';
                       const isInProgress = booking.status === 'In Progress';
+                      const isPending = booking.status === 'Pending';
 
                       return (
                         <div 
@@ -336,7 +326,7 @@ export default function SisterDashboard() {
                                 <span className="font-mono text-xs font-bold text-pink-700 bg-pink-50 px-2 py-0.5 rounded border border-pink-200">
                                   {booking.bookingRef}
                                 </span>
-                                <span className={"text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider " + (isCompleted ? 'bg-emerald-100 text-emerald-800' : isCancelled ? 'bg-gray-100 text-gray-600' : isInProgress ? 'bg-blue-100 text-blue-800' : 'bg-pink-100 text-pink-800')}>
+                                <span className={"text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider " + (isCompleted ? 'bg-emerald-100 text-emerald-800' : isCancelled ? 'bg-gray-100 text-gray-600' : isInProgress ? 'bg-blue-100 text-blue-800' : isPending ? 'bg-amber-100 text-amber-800' : 'bg-pink-100 text-pink-800')}>
                                   {booking.status}
                                 </span>
                               </div>
@@ -360,23 +350,23 @@ export default function SisterDashboard() {
                           </div>
 
                           {/* Action Controls */}
-                          {(isConfirm || isInProgress) && (
+                          {(isPending || isConfirm || isInProgress) && (
                             <div className="flex items-center justify-end gap-3 pt-1">
                               <button
-                                onClick={() => updateBookingStatus(booking.id, 'Cancelled')}
+                                onClick={() => updateBookingStatus(booking.id, 'Rejected')}
                                 className="text-xs text-gray-500 hover:text-red-600 font-bold py-2 px-3.5 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-1"
                               >
                                 <XCircle className="w-3.5 h-3.5" />
                                 <span>Reject / Decline</span>
                               </button>
                               
-                              {isConfirm && (
+                              {(isPending || isConfirm) && (
                                 <button
-                                  onClick={() => updateBookingStatus(booking.id, 'In Progress')}
+                                  onClick={() => updateBookingStatus(booking.id, isPending ? 'Confirmed' : 'In Progress')}
                                   className="bg-[#d81b60] hover:bg-[#c2185b] text-white text-xs font-bold py-2 px-5 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
                                 >
                                   <CheckCircle className="w-3.5 h-3.5" />
-                                  <span>Accept & Schedule</span>
+                                  <span>{isPending ? 'Accept Request' : 'Mark In Progress'}</span>
                                 </button>
                               )}
 

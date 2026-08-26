@@ -99,7 +99,7 @@ export function BookingProvider({ children }) {
     const fallbackBooking = {
       id: `bk-${Date.now()}`,
       bookingRef: `UD-${randomCode}`,
-      status: "Confirmed",
+      status: "Pending",
       createdAt: new Date().toISOString(),
       ...bookingData
     };

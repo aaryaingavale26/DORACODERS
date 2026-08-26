@@ -19,26 +19,48 @@ export function AuthProvider({ children }) {
         const res = await fetch('/auth/user');
         const data = await res.json();
         if (data.authenticated && data.user) {
-          setCurrentUser({
+          const fetchedUser = {
             id: data.user.id,
             name: data.user.name,
             email: data.user.email,
             role: data.user.role,
             avatar: data.user.profileImage,
             subscription: data.user.sisters?.[0]?.subscription || 'free',
-            sisterId: data.user.sisters?.[0]?.id || null
-          });
+            sisterId: data.user.sisters?.[0]?._id || data.user.sisters?.[0]?.id || null,
+            sisterProfile: data.user.sisters?.[0] || null
+          };
+          setCurrentUser(fetchedUser);
+          if (fetchedUser.role === 'sister') {
+            setCurrentView('dashboard');
+            setDashboardTab('bookings');
+          } else {
+            setCurrentView('home');
+          }
         } else {
           const saved = localStorage.getItem(AUTH_STORAGE_KEY);
           if (saved) {
-            setCurrentUser(JSON.parse(saved));
+            const parsed = JSON.parse(saved);
+            setCurrentUser(parsed);
+            if (parsed.role === 'sister') {
+              setCurrentView('dashboard');
+              setDashboardTab('bookings');
+            } else {
+              setCurrentView('home');
+            }
           }
         }
       } catch (e) {
         console.warn("Backend auth unavailable, using offline mock state", e);
         const saved = localStorage.getItem(AUTH_STORAGE_KEY);
         if (saved) {
-          setCurrentUser(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          setCurrentUser(parsed);
+          if (parsed.role === 'sister') {
+            setCurrentView('dashboard');
+            setDashboardTab('bookings');
+          } else {
+            setCurrentView('home');
+          }
         }
       } finally {
         setLoading(false);

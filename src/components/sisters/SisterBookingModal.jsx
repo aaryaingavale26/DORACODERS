@@ -90,14 +90,14 @@ export default function SisterBookingModal() {
     }
   };
 
-  const handleConfirmBooking = (e) => {
+  const handleConfirmBooking = async (e) => {
     e.preventDefault();
     if (!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()) {
       alert("Please provide your name, contact phone number, and doorstep address.");
       return;
     }
 
-    const newBooking = createBooking({
+    const newBooking = await createBooking({
       sisterId: sister.id,
       sisterName: sister.name,
       sisterAvatar: sister.avatar,
