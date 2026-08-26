@@ -117,7 +117,7 @@ export function AuthProvider({ children }) {
     if (role === 'sister') {
       setDashboardTab('bookings');
     }
-    setIsOnboardingModalOpen(role === 'buyer');
+    setIsOnboardingModalOpen(false);
     return mockGoogleUser;
   };
 
@@ -144,7 +144,7 @@ export function AuthProvider({ children }) {
     if (role === 'sister') {
       setDashboardTab('bookings');
     }
-    setIsOnboardingModalOpen(role === 'buyer');
+    setIsOnboardingModalOpen(false);
     return user;
   };
 
@@ -163,7 +163,7 @@ export function AuthProvider({ children }) {
     if (role === 'sister') {
       setDashboardTab('bookings');
     }
-    setIsOnboardingModalOpen(role === 'buyer');
+    setIsOnboardingModalOpen(false);
     return user;
   };
 
