@@ -82,16 +82,25 @@ export function AuthProvider({ children }) {
     }
   }, [currentUser]);
 
-  const loginWithGoogle = async (role = 'buyer') => {
-    // Verified Google Profile Data
-    const mockGoogleUser = {
+  const loginWithGoogle = async (role = 'buyer', customEmail = null, customName = null) => {
+    let finalEmail = customEmail?.trim();
+    if (!finalEmail) {
+      finalEmail = role === 'sister' ? 'anjali.sharma@gmail.com' : 'user@gmail.com';
+    }
+    
+    let finalName = customName?.trim();
+    if (!finalName) {
+      const prefix = finalEmail.split('@')[0];
+      finalName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+
+    // Google User Profile with user's own email and name
+    const googleUser = {
       id: `google-${Date.now()}`,
-      name: role === 'sister' ? 'Anjali Sharma' : 'Aarya Ingavale',
-      email: role === 'sister' ? 'anjali.sharma@gmail.com' : 'aaryaingavale2006@gmail.com',
+      name: finalName,
+      email: finalEmail,
       role: role,
-      avatar: role === 'sister'
-        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(finalName)}`,
       subscription: 'free',
       sisterId: role === 'sister' ? 'sister-1' : null
     };
@@ -102,10 +111,10 @@ export function AuthProvider({ children }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: mockGoogleUser.name,
-          email: mockGoogleUser.email,
-          profileImage: mockGoogleUser.avatar,
-          role: mockGoogleUser.role
+          name: googleUser.name,
+          email: googleUser.email,
+          profileImage: googleUser.avatar,
+          role: googleUser.role
         })
       })
       .then(r => r.json())
@@ -117,13 +126,13 @@ export function AuthProvider({ children }) {
       .catch(e => console.warn("MongoDB sync notification:", e));
     } catch (err) {}
 
-    setCurrentUser(mockGoogleUser);
+    setCurrentUser(googleUser);
     setCurrentView(role === 'sister' ? 'dashboard' : 'home');
     if (role === 'sister') {
       setDashboardTab('bookings');
     }
     setIsOnboardingModalOpen(false);
-    return mockGoogleUser;
+    return googleUser;
   };
 
   const login = (email, password, role = 'buyer') => {
